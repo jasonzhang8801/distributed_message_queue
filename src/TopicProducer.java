@@ -16,13 +16,13 @@ class TopicProducer {
         String topic = scanner.next();
         System.out.println("Please input topic partition:");
         int partition = scanner.nextInt();
-        System.out.println("Please input ZooKeeper/DSBS IP and port");
+        System.out.println("Please input ZooKeeper/DSBS's IP and port");
         String IP = scanner.next();
         int port = scanner.nextInt();
 
         sendTopic(topic, partition, IP, port);
 
-        System.out.println("Send successfully, exit");
+        System.out.println("Topic is Sent successfully, exit");
 
     }
 
