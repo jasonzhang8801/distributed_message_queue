@@ -1,7 +1,8 @@
 import java.util.List;
 
+
 enum TYPE {
-    PACKAGE, ZK2BADD, T2ZK, ZK2BTOPIC, P2BUP, P2BDATA, C2BUP, C2BDATA, B2ZKOFFSET, P2BEOS,
+    PACKAGE, ZK2BADD, T2ZK, ZK2BTOPIC, P2BUP, P2BDATA, C2BUP, C2BDATA, B2ZKOFFSET, B2PEOS,
 
 }
 
@@ -47,12 +48,11 @@ class ZK2BTopic extends Package {
 
 class P2BUp extends Package {
     String _topic;
-    List<String[]> _partitionList;
+    List<String[]> _partitionList;      // {IP, port, partitionNum}
 
-    public P2BUp(TYPE type, String topic, List<String[]> partitionList) {
+    public P2BUp(TYPE type, String topic) {
         super(type);
         _topic = topic;
-        _partitionList = partitionList;
     }
 }
 
@@ -72,7 +72,7 @@ class P2BData extends Package {
 class C2BUp extends Package {
     int _groupID;
     String _topic;
-    List<String[]> _offsetList;
+    List<String[]> _offsetList;     // {IP, port, partitionNum, offset}
 
     public C2BUp(TYPE type, int groupID, String topic, List<String[]> offsetList) {
         super(type);
@@ -112,9 +112,8 @@ class B2ZKOffset extends Package {
     }
 }
 
-class P2BEOS extends Package {
-    public P2BEOS(TYPE type) {
+class B2PEOS extends Package {
+    public B2PEOS(TYPE type) {
         super(type);
     }
 }
-
