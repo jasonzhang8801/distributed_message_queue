@@ -2,27 +2,41 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by benlolz on 5/29/17.
  */
 public class Broker {
-    static String port;
+    static int port;
+    static String ip;
     ServerSocket srvSock;
+    ConcurrentHashMap<String, ConcurrentHashMap<Integer, List<Record>>> topicMap;
+
+
+    public Broker() {
+        port = -1;
+        ip = null;
+        srvSock = null;
+        topicMap = new ConcurrentHashMap<>();
+    }
 
     public static void main(String[] args) {
         Broker broker = new Broker();
         broker.run();
     }
 
-    @Override
+
     public void run() {
         try {
             srvSock = new ServerSocket(0);
-            Broker.port = Integer.toString(srvSock.getLocalPort());
-            System.out.println("Server is starting up...");
+            port = srvSock.getLocalPort();
+            ip = InetAddress.getLocalHost().getHostAddress().toString();
+            System.out.println("BrokerServer is starting up...");
 
             while (true) {
                 Socket sock = srvSock.accept();
@@ -39,7 +53,7 @@ public class Broker {
 
 
 class BrokerWorker implements Runnable {
-    Socket sock;
+    private Socket sock;
     FileOutputStream fileOut;
     ObjectOutputStream obOut;
 
@@ -53,12 +67,10 @@ class BrokerWorker implements Runnable {
             ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
             Package pack = (Package) in.readObject();
             if (pack._type == TYPE.P2BUP) {
-                P2BUp package = (P2BUp) pack;
+                pack = (P2BUp) pack;
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
