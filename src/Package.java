@@ -18,8 +18,13 @@ abstract class Package implements Serializable{
 class ZK2BAdd extends Package {
     private static final long serialVersionUID = 1L;
 
-    public ZK2BAdd(TYPE type) {
+    String _zkIP;
+    int _zkPort;
+
+    public ZK2BAdd(TYPE type, String zkIP, int zkPort) {
         super(type);
+        _zkIP = zkIP;
+        _zkPort = zkPort;
     }
 }
 
@@ -41,15 +46,12 @@ class ZK2BTopic extends Package {
 
     String _topic;
     PartitionEntry _partitionEntry;
-    String _zkIP;
-    int _zkPort;
 
-    ZK2BTopic(TYPE type, String topic, PartitionEntry partitionEntry, String zkIP, int zkPort) {
+
+    ZK2BTopic(TYPE type, String topic, PartitionEntry partitionEntry) {
         super(type);
         _topic = topic;
         _partitionEntry = partitionEntry;
-        _zkIP = zkIP;
-        _zkPort = zkPort;
     }
 }
 
