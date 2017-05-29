@@ -41,15 +41,17 @@ class ZK2BTopic extends Package {
 
     String _topic;
     PartitionEntry _partitionEntry;
-    String _zkIp;
+
+    String _zkIP;
     int _zkPort;
 
-    ZK2BTopic(TYPE type, String topic, PartitionEntry partitionEntry, String ip, int port) {
+    ZK2BTopic(TYPE type, String topic, PartitionEntry partitionEntry, String zkIP, int zkPort) {
         super(type);
         _topic = topic;
         _partitionEntry = partitionEntry;
-        _zkIp = ip;
-        _zkPort = port;
+        _zkIP = zkIP;
+        _zkPort = zkPort;
+
     }
 }
 
