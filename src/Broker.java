@@ -14,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Broker {
     static int port;
     static String ip;
+    static int zkPort;
+    static String zkIp;
     ServerSocket srvSock;
     ConcurrentHashMap<String, ConcurrentHashMap<Integer, List<Record>>> topicMap;
 
@@ -54,8 +56,10 @@ public class Broker {
 
 class BrokerWorker implements Runnable {
     private Socket sock;
-    FileOutputStream fileOut;
-    ObjectOutputStream obOut;
+    ObjectInputStream in;
+    ObjectOutputStream out;
+    ObjectOutputStream fwdOut;
+    ObjectInputStream fwdIn;
 
     public BrokerWorker(Socket sock) {
         this.sock = sock;
@@ -64,11 +68,41 @@ class BrokerWorker implements Runnable {
     @Override
     public void run() {
         try {
-            ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
+            in = new ObjectInputStream(sock.getInputStream());
             Package pack = (Package) in.readObject();
             if (pack._type == TYPE.P2BUP) {
                 pack = (P2BUp) pack;
+                Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
+                fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
+                fwdOut.writeObject(pack);
+
+                fwdIn = new ObjectInputStream(fwdSock.getInputStream());
+                pack = null;
+                while (pack == null) {
+                    pack = (P2BUp) in.readObject();
+                }
+                fwdSock.close();
+                out = new ObjectOutputStream(sock.getOutputStream());
+                out.writeObject(pack);
+                sock.close();
             }
+            else if (pack._type == TYPE.C2BUP) {
+                pack = (C2BUp) pack;
+                Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
+                fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
+                fwdOut.writeObject(pack);
+
+                fwdIn = new ObjectInputStream(fwdSock.getInputStream());
+                pack = null;
+                while (pack == null) {
+                    pack = (C2BUp) in.readObject();
+                }
+                fwdSock.close();
+                out = new ObjectOutputStream(sock.getOutputStream());
+                out.writeObject(pack);
+                sock.close();
+            }
+
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
