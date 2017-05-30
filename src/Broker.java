@@ -82,6 +82,7 @@ class BrokerWorker implements Runnable {
                     pack = (P2BUp) in.readObject();
                 }
                 fwdSock.close();
+                pack._ack = true;
                 out = new ObjectOutputStream(sock.getOutputStream());
                 out.writeObject(pack);
                 sock.close();
@@ -98,6 +99,7 @@ class BrokerWorker implements Runnable {
                     pack = (C2BUp) in.readObject();
                 }
                 fwdSock.close();
+                pack._ack = true;
                 out = new ObjectOutputStream(sock.getOutputStream());
                 out.writeObject(pack);
                 sock.close();
