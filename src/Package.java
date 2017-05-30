@@ -1,9 +1,12 @@
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Created by YueLiu on 5/27/17.
  */
-abstract class Package {
+abstract class Package implements Serializable{
+    private static final long serialVersionUID = 1L;
+
     TYPE _type;
     boolean _ack;
 
@@ -13,12 +16,21 @@ abstract class Package {
 }
 
 class ZK2BAdd extends Package {
-    public ZK2BAdd(TYPE type) {
+    private static final long serialVersionUID = 1L;
+
+    String _zkIP;
+    int _zkPort;
+
+    public ZK2BAdd(TYPE type, String zkIP, int zkPort) {
         super(type);
+        _zkIP = zkIP;
+        _zkPort = zkPort;
     }
 }
 
 class T2ZK extends Package {
+    private static final long serialVersionUID = 1L;
+
     String _topic;
     int _partition;
 
@@ -30,8 +42,11 @@ class T2ZK extends Package {
 }
 
 class ZK2BTopic extends Package {
+    private static final long serialVersionUID = 1L;
+
     String _topic;
     PartitionEntry _partitionEntry;
+
 
     ZK2BTopic(TYPE type, String topic, PartitionEntry partitionEntry) {
         super(type);
@@ -41,6 +56,8 @@ class ZK2BTopic extends Package {
 }
 
 class P2BUp extends Package {
+    private static final long serialVersionUID = 1L;
+
     String _topic;
     List<String[]> _partitionList;      // {IP, port, partitionNum}
 
@@ -51,6 +68,8 @@ class P2BUp extends Package {
 }
 
 class P2BData extends Package {
+    private static final long serialVersionUID = 1L;
+
     String _topic;
     int _partitionNum;
     List<Record> _data;
@@ -64,6 +83,8 @@ class P2BData extends Package {
 }
 
 class C2BUp extends Package {
+    private static final long serialVersionUID = 1L;
+
     int _groupID;
     String _topic;
     List<String[]> _offsetList;     // {IP, port, partitionNum, offset}
@@ -77,6 +98,8 @@ class C2BUp extends Package {
 }
 
 class C2BDATA extends Package {
+    private static final long serialVersionUID = 1L;
+
     String _topic;
     int _partitionNum;
     int _offset;
@@ -92,6 +115,8 @@ class C2BDATA extends Package {
 }
 
 class B2ZKOffset extends Package {
+    private static final long serialVersionUID = 1L;
+
     String _topic;
     int _groupdID;
     int _partitionNum;
@@ -107,6 +132,8 @@ class B2ZKOffset extends Package {
 }
 
 class B2PEOS extends Package {
+    private static final long serialVersionUID = 1L;
+
     B2PEOS(TYPE type) {
         super(type);
     }
