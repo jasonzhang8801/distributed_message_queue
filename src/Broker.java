@@ -16,13 +16,15 @@ public class Broker {
     static String ip;
     static int zkPort;
     static String zkIp;
-    ServerSocket srvSock;
-    ConcurrentHashMap<String, ConcurrentHashMap<Integer, List<Record>>> topicMap;
+    static ServerSocket srvSock;
+    static ConcurrentHashMap<String, ConcurrentHashMap<Integer, List<Record>>> topicMap;
 
 
     public Broker() {
         port = -1;
         ip = null;
+        zkPort = -1;
+        zkIp = null;
         srvSock = null;
         topicMap = new ConcurrentHashMap<>();
     }
@@ -103,6 +105,29 @@ class BrokerWorker implements Runnable {
                 out = new ObjectOutputStream(sock.getOutputStream());
                 out.writeObject(pack);
                 sock.close();
+            }
+            else if (pack._type == TYPE.P2BDATA) {
+                pack =(P2BData) pack;
+                String topic = ((P2BData) pack)._topic;
+                List<Record> data = ((P2BData) pack)._data;
+                int partitionNum = ((P2BData) pack)._partitionNum;
+                if (Broker.topicMap.containsKey(topic)) {
+                    ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
+                    if (entryMap.containsKey(partitionNum)) {
+                        List<Record> tmpData = entryMap.get(partitionNum);
+                        tmpData.addAll(data);
+                        entryMap.put(partitionNum, tmpData);
+                    }
+                    else {
+                        entryMap.put(partitionNum, data);
+                    }
+                    Broker.topicMap.put(topic, entryMap);
+                }
+                else {
+                    ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
+                    entryMap.put(partitionNum, data);
+                    Broker.topicMap.put(topic, entryMap);
+                }
             }
 
 
