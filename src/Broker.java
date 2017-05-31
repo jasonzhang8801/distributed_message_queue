@@ -101,8 +101,8 @@ class BrokerWorker implements Runnable {
 
                 while (true) {
                     Package pack3 = (Package) in.readObject();
-                    if (pack3._type == TYPE.B2PEOS) {
-                        B2PEOS pack4 = (B2PEOS) pack3;
+                    if (pack3._type == TYPE.EOS) {
+                        EOS pack4 = (EOS) pack3;
                         pack4._ack = true;
                         out = new ObjectOutputStream(sock.getOutputStream());
                         out.writeObject(pack4);
@@ -169,20 +169,21 @@ class BrokerWorker implements Runnable {
                 sock.close();
             }
             else if (pack1._type == TYPE.C2BDATA) {
-                C2BDATA pack2 = (C2BDATA) pack1;
+                C2BData pack2 = (C2BData) pack1;
                 String topic = pack2._topic;
                 int partitionNum = pack2._partitionNum;
                 int offset = pack2._partitionNum;
+                int batchSize = pack2._batchSize;
                 while (true) {
                     if (Broker.topicMap.containsKey(topic)) {
                         ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
                         if (entryMap.containsKey(partitionNum)) {
                             List<Record> dataList = entryMap.get(partitionNum);
                             int size = dataList.size();
-                            if (offset < size && offset + 20 <= size) {
-                                List<Record> subList = new ArrayList<>(dataList.subList(offset, offset+20));
+                            if (offset < size && offset +  batchSize<= size) {
+                                List<Record> subList = new ArrayList<>(dataList.subList(offset, offset+batchSize));
                                 pack2._data = subList;
-                                pack2._offset = offset+20;
+                                pack2._offset = offset+batchSize;
                                 pack2._partitionNum = -1;
                                 pack2._topic = null;
                                 out = new ObjectOutputStream(sock.getOutputStream());
@@ -193,7 +194,7 @@ class BrokerWorker implements Runnable {
                                 fwdOut.writeObject(pack3);
                                 fwdSock.close();
                             }
-                            else if (offset < size && offset + 20 > size) {
+                            else if (offset < size && offset + batchSize > size) {
                                 List<Record> subList = new ArrayList<>(dataList.subList(offset, size));
                                 pack2._data = subList;
                                 pack2._offset = size;
@@ -208,7 +209,7 @@ class BrokerWorker implements Runnable {
                                 fwdSock.close();
                             }
                             else {
-                                B2PEOS pack3 = new B2PEOS(TYPE.B2PEOS);
+                                EOS pack3 = new EOS(TYPE.EOS);
                                 out = new ObjectOutputStream(sock.getOutputStream());
                                 out.writeObject(pack3);
                                 sock.close();
