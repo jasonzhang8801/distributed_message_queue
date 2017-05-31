@@ -116,6 +116,13 @@ class P2BData extends Package {
         _partitionNum = partitionNum;
         _data = data;
     }
+
+    P2BData(P2BData pack) {
+        super(pack._type);
+        _topic = pack._topic;
+        _partitionNum = pack._partitionNum;
+        _data = pack._data;
+    }
 }
 
 class C2BUp extends Package {
@@ -176,5 +183,5 @@ class B2PEOS extends Package {
 }
 
 enum TYPE {
-    ZK2BADD, T2ZK, ZK2BTOPIC, P2BUP, P2BDATA, C2BUP, C2BDATA, B2ZKOFFSET, B2PEOS, T2B, B2BADD, B2BINFO
+    B2BADD, B2BINFO, B2PEOS, B2ZKOFFSET, C2BDATA, C2BUP, P2BDATA, P2BUP, T2B, T2ZK, ZK2BADD, ZK2BTOPIC
 }
