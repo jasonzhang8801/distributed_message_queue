@@ -139,6 +139,30 @@ class B2PEOS extends Package {
     }
 }
 
+class B2BAdd extends Package {
+    private static final long serialVersionUID = 1L;
+
+    List<String[]> _brokerList;
+
+    B2BAdd(TYPE type, List<String[]> brokerList) {
+        super(type);
+        _brokerList = brokerList;
+    }
+}
+
+class T2B extends Package {
+    private static final long serialVersionUID = 1L;
+
+    String _topic;
+    int _partition;
+
+    T2B(TYPE type, String topic, int partition) {
+        super(type);
+        _topic = topic;
+        _partition = partition;
+    }
+}
+
 enum TYPE {
-    ZK2BADD, T2ZK, ZK2BTOPIC, P2BUP, P2BDATA, C2BUP, C2BDATA, B2ZKOFFSET, B2PEOS,
+    ZK2BADD, T2ZK, ZK2BTOPIC, P2BUP, P2BDATA, C2BUP, C2BDATA, B2ZKOFFSET, B2PEOS, B2BADD, T2B
 }
