@@ -140,7 +140,7 @@ public class Producer {
                 ObjectInputStream in = new ObjectInputStream(_socket.getInputStream());
 
                 // send P2BData
-                while (!_finish) {
+                while (!_finish || !_queue.isEmpty()) {
                     List<Record> data = new ArrayList<>();
                     while (!_queue.isEmpty() && data.size() < _batchSize) {
                         data.add(_queue.poll());
@@ -149,17 +149,7 @@ public class Producer {
                     out.flush();
                 }
 
-                // producer finish, producerWorker continue send remaining record
-                while (!_queue.isEmpty()) {
-                    List<Record> data = new ArrayList<>();
-                    while (!_queue.isEmpty() && data.size() < _batchSize) {
-                        data.add(_queue.poll());
-                    }
-                    out.writeObject(new P2BData(TYPE.P2BDATA, _topic, _partitionNum, data));
-                    out.flush();
-                }
-
-                // send an P2BEOS
+                // send P2BEOS
                 out.writeObject(new P2BEOS(TYPE.P2BEOS));
                 out.flush();
 
@@ -172,7 +162,6 @@ public class Producer {
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
-
         }
     }
 
