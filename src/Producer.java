@@ -26,7 +26,6 @@ public class Producer {
         configure();
         connectBroker();
         produce();
-
     }
 
     // server start
@@ -64,13 +63,11 @@ public class Producer {
 
             P2BUp p = new P2BUp(TYPE.P2BUP, _topic);
             out.writeObject(p);
-            out.flush();
             p = (P2BUp) in.readObject();
             _destList = p._partitionList;
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-
     }
 
     // produce data
@@ -111,6 +108,8 @@ public class Producer {
                 e.printStackTrace();
             }
         }
+
+        // calculate throughput
         long end = System.currentTimeMillis();
         long throughput = _bufferSize / (end - start) / 1000 ;
         System.out.println("Batch Size = " + _batchSize + " Record Size = " + _recordSize + "Throughput = " + throughput);
@@ -135,9 +134,8 @@ public class Producer {
 
         @Override
         public void run() {
-            try {
-                ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream());
-                ObjectInputStream in = new ObjectInputStream(_socket.getInputStream());
+            try (ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream());
+                 ObjectInputStream in = new ObjectInputStream(_socket.getInputStream())){
 
                 // send P2BData
                 while (!_finish || !_queue.isEmpty()) {
@@ -146,18 +144,15 @@ public class Producer {
                         data.add(_queue.poll());
                     }
                     out.writeObject(new P2BData(TYPE.P2BDATA, _topic, _partitionNum, data));
-                    out.flush();
                 }
 
                 // send P2BEOS
                 out.writeObject(new EOS(TYPE.EOS));
-                out.flush();
 
                 // wait for broker's response
                 in.readObject();
 
-                in.close();
-                out.close();
+                // close socket
                 _socket.close();
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
