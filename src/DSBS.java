@@ -5,10 +5,7 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,31 +16,38 @@ import java.util.regex.Pattern;
 
 public class DSBS {
     // DSBS's ip and port number
-    public static String ipAddr;
-    public static int portNum;
+    public static String ipAddr = null;
+    public static int portNum = -1;
+    // DSBS's topic information
+    public static ConcurrentHashMap<String, List<PartitionEntry>> infoMap = new ConcurrentHashMap<>();
     // DSBS's data storage
-    public static ConcurrentHashMap<String, ConcurrentHashMap<Integer, List<Record>>> dataMap;
+    public static ConcurrentHashMap<String, ConcurrentHashMap<Integer, List<Record>>> dataMap = new ConcurrentHashMap<>();
     // DSBS's cluster information
-    public static List<String[]> brokerList;
-
-    public DSBS() {
-        ipAddr = null;
-        portNum = -1;
-        dataMap = new ConcurrentHashMap<>();
-        brokerList = new ArrayList<>();
-    }
+    public static List<String[]> brokerList = new ArrayList<>();
 
     /**
      * create the information map to store the topic with the partitions
      */
     public static void createInfoMap() {}
 
-
     public static void main(String[] args) {
+        // start server
+        (new Thread(new DSBSServer())).start();
 
+        // print host ip and port
+        while (DSBS.ipAddr == null || DSBS.portNum == -1) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println(DSBS.ipAddr + " at port number: " + DSBS.portNum);
+
+        // start console client to handle user input
+        DSBSClient client = new DSBSClient();
+        client.setUp();
     }
-
-
 }
 
 /**
@@ -72,8 +76,6 @@ class DSBSServer implements Runnable {
             } else {
                 System.out.println("Error: no valid IP or port number");
             }
-
-
 
             // listen the request
             while (true) {
@@ -113,7 +115,7 @@ class DSBSServerWorker implements Runnable {
                     switch (pkgType) {
                         case B2BADD: {
                             // add the broker cluster
-                            System.out.println("Server: receive package with type \"B2BADD\"");
+                            System.out.println("Server: received package with type \"B2BADD\"");
 
                             // retrieve the brokerList
                             B2BAdd pkg = (B2BAdd) revPkg;
@@ -124,9 +126,61 @@ class DSBSServerWorker implements Runnable {
                             out.writeObject(pkg);
                             System.out.println("Server: send ACK back");
 
+                            break;
                         }
                         case T2B: {
                             // create topic into the broker cluster
+                            System.out.println("Server: received package with type \"T2B\"");
+
+                            // retrieve topic and partition number
+                            T2B pkg = (T2B) revPkg;
+                            String topic = pkg._topic;
+                            int numOfPart = pkg._partition;
+
+                            // check package
+                            if (topic == null || numOfPart <= 0) {
+                                System.out.println("System error: invalid topic or partition number");
+                                break;
+                            }
+
+                            // save the topic information
+                            if (!DSBS.infoMap.containsKey(topic)) {
+                                List<PartitionEntry> listOfPartitionEntry = new ArrayList<>();
+
+                                // randomly assign the partitions to brokers
+                                Random rand = new Random();
+                                for (int i = 0; i < numOfPart; i++) {
+                                    int brokerIdx = rand.nextInt(DSBS.brokerList.size());
+                                    System.out.println("topic " + topic + " with partition " + i + " at broker " + brokerIdx);
+
+                                    // create a partitionEntry
+                                    PartitionEntry partitionEntry = new PartitionEntry();
+                                    partitionEntry._brokerID = brokerIdx;
+                                    partitionEntry._partitionNum = i;
+                                    partitionEntry._offsetMap = new Hashtable<>();
+
+                                    listOfPartitionEntry.add(partitionEntry);
+                                }
+
+                                DSBS.infoMap.put(topic, listOfPartitionEntry);
+
+                            } else {
+                                System.out.println("Error: not support duplicated topic");
+                            }
+
+                            // update other broker's infoMap
+                            for (int i = 0; i < DSBS.brokerList.size(); i++) {
+
+                                String ipAddr = DSBS.brokerList.get(i)[0];
+                                int portNum = Integer.parseInt(DSBS.brokerList.get(i)[1]);
+
+                                // skip the current broker
+                                if (ipAddr == DSBS.ipAddr && portNum == DSBS.portNum) continue;
+
+                                // connect remote broker
+
+                            }
+
                             break;
                         }
                         default: {
@@ -324,24 +378,8 @@ abstract class DSBSUtility {
                         } else if (c == ')') {
                             String content = withoutCommandSubstr.substring(start_pos + 1, i);
 
-                            String remoteHostName = null;
                             String remoteIpAddr = null;
                             String remotePortNum = null;
-
-                            // validate the remote host name
-                            pattern = Pattern.compile("(^[a-zA-Z][a-zA-Z0-9]*)");
-                            matcher = pattern.matcher(content);
-
-                            if (matcher.find()) {
-                                remoteHostName = matcher.group(1);
-                            } else {
-                                System.out.println("Error: invalid host name");
-                                System.out.println("Help: please review the following host naming convention");
-                                System.out.println("Host name must start with English letters");
-                                System.out.println("Host name only contains English letters and numbers");
-                                System.out.println("Please type command \"help\" to get more details");
-                                return null;
-                            }
 
                             // validate the remote host ip
                             pattern = Pattern.compile("(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})");
@@ -353,7 +391,6 @@ abstract class DSBSUtility {
                                 System.out.println("Error: invalid host ip");
                                 System.out.println("Help: please review the following IP address convention");
                                 System.out.println("123.123.12.12");
-                                System.out.println("Please type command \"help\" to get more details");
                                 return null;
                             }
 
