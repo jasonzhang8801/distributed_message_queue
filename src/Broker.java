@@ -5,7 +5,10 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -71,72 +74,136 @@ class BrokerWorker implements Runnable {
     public void run() {
         try {
             in = new ObjectInputStream(sock.getInputStream());
-            Package pack = (Package) in.readObject();
-            if (pack._type == TYPE.P2BUP) {
-                pack = (P2BUp) pack;
+            Package pack1 = (Package) in.readObject();
+            if (pack1._type == TYPE.P2BUP) {
+                P2BUp pack2 = (P2BUp) pack1;
                 Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
                 fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
-                fwdOut.writeObject(pack);
+                fwdOut.writeObject(pack2);
 
                 fwdIn = new ObjectInputStream(fwdSock.getInputStream());
-                pack = null;
-                while (pack == null) {
-                    pack = (P2BUp) in.readObject();
+                pack2 = null;
+                while (pack2 == null) {
+                    pack2 = (P2BUp) in.readObject();
                 }
                 fwdSock.close();
-                pack._ack = true;
+                pack2._partitionList = null;
+                pack2._ack = true;
                 out = new ObjectOutputStream(sock.getOutputStream());
-                out.writeObject(pack);
+                out.writeObject(pack2);
                 sock.close();
             }
-            else if (pack._type == TYPE.C2BUP) {
-                pack = (C2BUp) pack;
-                Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
-                fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
-                fwdOut.writeObject(pack);
+            else if (pack1._type == TYPE.P2BDATA) {
+                P2BData pack2 =(P2BData) pack1;
+                BrokerP2BDataProcessor processor1 = new BrokerP2BDataProcessor(pack2);
+                Thread t1 = new Thread(processor1);
+                t1.start();
 
-                fwdIn = new ObjectInputStream(fwdSock.getInputStream());
-                pack = null;
-                while (pack == null) {
-                    pack = (C2BUp) in.readObject();
-                }
-                fwdSock.close();
-                pack._ack = true;
-                out = new ObjectOutputStream(sock.getOutputStream());
-                out.writeObject(pack);
-                sock.close();
-            }
-            else if (pack._type == TYPE.P2BDATA) {
-                pack =(P2BData) pack;
-                String topic = ((P2BData) pack)._topic;
-                List<Record> data = ((P2BData) pack)._data;
-                int partitionNum = ((P2BData) pack)._partitionNum;
-                if (Broker.topicMap.containsKey(topic)) {
-                    ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
-                    if (entryMap.containsKey(partitionNum)) {
-                        List<Record> tmpData = entryMap.get(partitionNum);
-                        tmpData.addAll(data);
-                        entryMap.put(partitionNum, tmpData);
+                while (true) {
+                    Package pack3 = (Package) in.readObject();
+                    if (pack3._type == TYPE.B2PEOS) {
+                        B2PEOS pack4 = (B2PEOS) pack3;
+                        pack4._ack = true;
+                        out = new ObjectOutputStream(sock.getOutputStream());
+                        out.writeObject(pack4);
+                        sock.close();
+                        break;
                     }
                     else {
-                        entryMap.put(partitionNum, data);
+                        P2BData pack4 =(P2BData) pack3;
+                        BrokerP2BDataProcessor processor2 = new BrokerP2BDataProcessor(pack2);
+                        Thread t2 = new Thread(processor2);
+                        t2.start();
+                    }
+                }
+            }
+            else if (pack1._type == TYPE.ZK2BADD) {
+                ZK2BAdd pack2 = (ZK2BAdd) pack1;
+                Broker.zkIp = pack2._zkIP;
+                Broker.zkPort = pack2._zkPort;
+                pack2._zkIP = null;
+                pack2._zkPort = -1;
+                pack2._ack = true;
+                out = new ObjectOutputStream(sock.getOutputStream());
+                out.writeObject(pack2);
+                sock.close();
+            }
+            else if (pack1._type == TYPE.ZK2BTOPIC) {
+                ZK2BTopic pack2 = (ZK2BTopic) pack1;
+                String topic = pack2._topic;
+                PartitionEntry partitionEntry = pack2._partitionEntry;
+                if (Broker.topicMap.containsKey(topic)) {
+                    ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
+                    if (!entryMap.containsKey(partitionEntry._partitionNum)) {
+                        entryMap.put(partitionEntry._partitionNum, new ArrayList<Record>());
                     }
                     Broker.topicMap.put(topic, entryMap);
                 }
                 else {
                     ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
-                    entryMap.put(partitionNum, data);
+                    entryMap.put(partitionEntry._partitionNum, new ArrayList<Record>());
                     Broker.topicMap.put(topic, entryMap);
                 }
+                pack2._partitionEntry = null;
+                pack2._topic = null;
+                pack2._ack = true;
+                out = new ObjectOutputStream(sock.getOutputStream());
+                out.writeObject(pack2);
+                sock.close();
             }
-            else if (pack._type == TYPE.ZK2BADD) {
-                pack = (ZK2BAdd) pack;
-                
+            else if (pack1._type == TYPE.C2BUP) {
+                C2BUp pack2 = (C2BUp) pack1;
+                Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
+                fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
+                fwdOut.writeObject(pack2);
+
+                fwdIn = new ObjectInputStream(fwdSock.getInputStream());
+                pack2 = null;
+                while (pack2 == null) {
+                    pack2 = (C2BUp) in.readObject();
+                }
+                fwdSock.close();
+                pack2._ack = true;
+                out = new ObjectOutputStream(sock.getOutputStream());
+                out.writeObject(pack2);
+                sock.close();
             }
 
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+        }
+    }
+}
+
+class BrokerP2BDataProcessor implements Runnable{
+
+    P2BData pack;
+
+    public BrokerP2BDataProcessor(P2BData pack) {
+        this.pack = pack;
+    }
+    @Override
+    public void run() {
+        String topic = pack._topic;
+        List<Record> data = pack._data;
+        int partitionNum = pack._partitionNum;
+        if (Broker.topicMap.containsKey(topic)) {
+            ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
+            if (entryMap.containsKey(partitionNum)) {
+                List<Record> tmpData = entryMap.get(partitionNum);
+                tmpData.addAll(data);
+                entryMap.put(partitionNum, tmpData);
+            }
+            else {
+                entryMap.put(partitionNum, data);
+            }
+            Broker.topicMap.put(topic, entryMap);
+        }
+        else {
+            ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
+            entryMap.put(partitionNum, data);
+            Broker.topicMap.put(topic, entryMap);
         }
     }
 }
