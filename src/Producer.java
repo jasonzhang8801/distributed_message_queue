@@ -159,7 +159,7 @@ public class Producer {
                     out.flush();
                 }
 
-                // send an P2BEOS
+                // send P2BEOS
                 out.writeObject(new P2BEOS(TYPE.P2BEOS));
                 out.flush();
 
