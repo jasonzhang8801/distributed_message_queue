@@ -140,19 +140,23 @@ class C2BUp extends Package {
     }
 }
 
-class C2BDATA extends Package {
+class C2BData extends Package {
     private static final long serialVersionUID = 1L;
 
     String _topic;
     int _partitionNum;
     int _offset;
+    int _groupID;
+    int _batchSize;
     List<Record> _data;
 
-    C2BDATA(TYPE type, String topic, int partitionNum, int offset, List<Record> data) {
+    C2BData(TYPE type, String topic, int partitionNum, int offset, int groupID, int batchSize, List<Record> data) {
         super(type);
         _topic = topic;
         _partitionNum = partitionNum;
         _offset = offset;
+        _groupID = groupID;
+        _batchSize = batchSize;
         _data = data;
     }
 }
