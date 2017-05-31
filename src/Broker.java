@@ -129,6 +129,10 @@ class BrokerWorker implements Runnable {
                     Broker.topicMap.put(topic, entryMap);
                 }
             }
+            else if (pack._type == TYPE.ZK2BADD) {
+                pack = (ZK2BAdd) pack;
+                
+            }
 
 
         } catch (IOException | ClassNotFoundException e) {
