@@ -390,7 +390,7 @@ abstract class DSBSUtility {
             }
         }
 
-        return parserEntry; 
+        return parserEntry;
     }
 
     private static boolean isValidParenthesis(String in) {
