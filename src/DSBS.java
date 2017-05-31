@@ -301,9 +301,96 @@ abstract class DSBSUtility {
                 return null;
             }
 
+            // retrieve command name
+            String commandName = matcher.group(1);
+            parserEntry.commandName = commandName;
 
+            String withoutCommandSubstr = trimmed.substring(matcher.end(1)).trim();
+
+            switch (commandName.toLowerCase()) {
+                case "add": {
+                    // init the remote network information list
+                    parserEntry.listOfIpAddr = new ArrayList<>();
+                    parserEntry.listOfPortNum = new ArrayList<>();
+
+                    // retrieve the valid network information
+                    // e.g. "123.456.78.90, 1234"
+                    int start_pos = 0;
+                    for (int i = 0; i < withoutCommandSubstr.length(); i++) {
+                        char c = withoutCommandSubstr.charAt(i);
+
+                        if (c == '(') {
+                            start_pos = i;
+                        } else if (c == ')') {
+                            String content = withoutCommandSubstr.substring(start_pos + 1, i);
+
+                            String remoteHostName = null;
+                            String remoteIpAddr = null;
+                            String remotePortNum = null;
+
+                            // validate the remote host name
+                            pattern = Pattern.compile("(^[a-zA-Z][a-zA-Z0-9]*)");
+                            matcher = pattern.matcher(content);
+
+                            if (matcher.find()) {
+                                remoteHostName = matcher.group(1);
+                            } else {
+                                System.out.println("Error: invalid host name");
+                                System.out.println("Help: please review the following host naming convention");
+                                System.out.println("Host name must start with English letters");
+                                System.out.println("Host name only contains English letters and numbers");
+                                System.out.println("Please type command \"help\" to get more details");
+                                return null;
+                            }
+
+                            // validate the remote host ip
+                            pattern = Pattern.compile("(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})");
+                            matcher = pattern.matcher(content);
+
+                            if (matcher.find()) {
+                                remoteIpAddr = matcher.group(1);
+                            } else {
+                                System.out.println("Error: invalid host ip");
+                                System.out.println("Help: please review the following IP address convention");
+                                System.out.println("123.123.12.12");
+                                System.out.println("Please type command \"help\" to get more details");
+                                return null;
+                            }
+
+                            // validate the remote host port
+                            pattern = Pattern.compile(",\\s*(\\d{4,5}$)");
+                            matcher = pattern.matcher(content);
+
+                            if (matcher.find() && (Integer.parseInt(matcher.group(1)) >= 1024 && Integer.parseInt(matcher.group(1)) <= 49151)) {
+                                remotePortNum = matcher.group(1);
+                            } else {
+                                System.out.println("Error: invalid host port");
+                                System.out.println("Help: valid port number should be between 1024 and 49151, inclusive");
+                                System.out.println("Please type command \"help\" to get more details");
+                                return null;
+                            }
+
+                            // NEED TO CHECK THE SEPARATOR
+//                            // validate the separator, comma
+//                            pattern = Pattern.compile(".+,\\s*.+,\\s*.+");
+//                            matcher = pattern.matcher(content);
+//                            if (!matcher.find())
+
+                            // add ip and port number
+                            parserEntry.listOfIpAddr.add(remoteIpAddr);
+                            parserEntry.listOfPortNum.add(remotePortNum);
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    System.out.println("System error: invalid command");
+                    break;
+                }
+            }
         }
 
+        return parserEntry; 
     }
 
     private static boolean isValidParenthesis(String in) {
