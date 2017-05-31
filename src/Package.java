@@ -1,5 +1,6 @@
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by YueLiu on 5/27/17.
@@ -28,6 +29,28 @@ class ZK2BAdd extends Package {
     }
 }
 
+class B2BAdd extends Package {
+    private static final long serialVersionUID = 1L;
+
+    List<String[]> _brokerList;         // {IP, port}
+
+    public B2BAdd (TYPE type, List<String[]> brokerList) {
+        super(type);
+        _brokerList = brokerList;
+    }
+}
+
+class B2BInfo extends Package {
+    private static final long serialVersionUID = 1L;
+
+    Map<String, List<PartitionEntry>> _infoMap;   // topic -> List<PartitionEntry>
+
+    public B2BInfo(TYPE type, Map<String, List<PartitionEntry>> infoMap) {
+        super(type);
+        _infoMap = infoMap;
+    }
+}
+
 class T2ZK extends Package {
     private static final long serialVersionUID = 1L;
 
@@ -35,6 +58,19 @@ class T2ZK extends Package {
     int _partition;
 
     T2ZK(TYPE type, String topic, int partition) {
+        super(type);
+        _topic = topic;
+        _partition = partition;
+    }
+}
+
+class T2B extends Package {
+    private static final long serialVersionUID = 1L;
+
+    String _topic;
+    int _partition;
+
+    T2B(TYPE type, String topic, int partition) {
         super(type);
         _topic = topic;
         _partition = partition;
@@ -140,5 +176,5 @@ class B2PEOS extends Package {
 }
 
 enum TYPE {
-    ZK2BADD, T2ZK, ZK2BTOPIC, P2BUP, P2BDATA, C2BUP, C2BDATA, B2ZKOFFSET, B2PEOS,
+    ZK2BADD, T2ZK, ZK2BTOPIC, P2BUP, P2BDATA, C2BUP, C2BDATA, B2ZKOFFSET, B2PEOS, T2B, B2BADD, B2BINFO
 }
