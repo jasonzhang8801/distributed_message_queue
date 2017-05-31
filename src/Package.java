@@ -1,5 +1,6 @@
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by YueLiu on 5/27/17.
@@ -28,6 +29,28 @@ class ZK2BAdd extends Package {
     }
 }
 
+class B2BAdd extends Package {
+    private static final long serialVersionUID = 1L;
+
+    List<String[]> _brokerList;         // {IP, port}
+
+    public B2BAdd (TYPE type, List<String[]> brokerList) {
+        super(type);
+        _brokerList = brokerList;
+    }
+}
+
+class B2BInfo extends Package {
+    private static final long serialVersionUID = 1L;
+
+    Map<String, List<PartitionEntry>> _infoMap;   // topic -> List<PartitionEntry>
+
+    public B2BInfo(TYPE type, Map<String, List<PartitionEntry>> infoMap) {
+        super(type);
+        _infoMap = infoMap;
+    }
+}
+
 class T2ZK extends Package {
     private static final long serialVersionUID = 1L;
 
@@ -35,6 +58,19 @@ class T2ZK extends Package {
     int _partition;
 
     T2ZK(TYPE type, String topic, int partition) {
+        super(type);
+        _topic = topic;
+        _partition = partition;
+    }
+}
+
+class T2B extends Package {
+    private static final long serialVersionUID = 1L;
+
+    String _topic;
+    int _partition;
+
+    T2B(TYPE type, String topic, int partition) {
         super(type);
         _topic = topic;
         _partition = partition;
@@ -80,6 +116,13 @@ class P2BData extends Package {
         _partitionNum = partitionNum;
         _data = data;
     }
+
+    P2BData(P2BData pack) {
+        super(pack._type);
+        _topic = pack._topic;
+        _partitionNum = pack._partitionNum;
+        _data = pack._data;
+    }
 }
 
 class C2BUp extends Package {
@@ -97,19 +140,23 @@ class C2BUp extends Package {
     }
 }
 
-class C2BDATA extends Package {
+class C2BData extends Package {
     private static final long serialVersionUID = 1L;
 
     String _topic;
     int _partitionNum;
     int _offset;
+    int _groupID;
+    int _batchSize;
     List<Record> _data;
 
-    C2BDATA(TYPE type, String topic, int partitionNum, int offset, List<Record> data) {
+    C2BData(TYPE type, String topic, int partitionNum, int offset, int groupID, int batchSize, List<Record> data) {
         super(type);
         _topic = topic;
         _partitionNum = partitionNum;
         _offset = offset;
+        _groupID = groupID;
+        _batchSize = batchSize;
         _data = data;
     }
 }
@@ -131,14 +178,14 @@ class B2ZKOffset extends Package {
     }
 }
 
-class B2PEOS extends Package {
+class EOS extends Package {
     private static final long serialVersionUID = 1L;
 
-    B2PEOS(TYPE type) {
+    EOS(TYPE type) {
         super(type);
     }
 }
 
 enum TYPE {
-    ZK2BADD, T2ZK, ZK2BTOPIC, P2BUP, P2BDATA, C2BUP, C2BDATA, B2ZKOFFSET, B2PEOS,
+    B2BADD, B2BINFO, B2ZKOFFSET, C2BDATA, C2BUP, EOS, P2BDATA,P2BUP, T2B, T2ZK, ZK2BADD, ZK2BTOPIC
 }
