@@ -11,8 +11,3 @@ class Record {
     }
 }
 
-class EOFRecord extends Record{
-    EOFRecord(String topic, String value) {
-        super(topic, value);
-    }
-}
