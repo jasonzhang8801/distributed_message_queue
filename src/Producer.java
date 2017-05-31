@@ -150,7 +150,7 @@ public class Producer {
                 }
 
                 // send P2BEOS
-                out.writeObject(new P2BEOS(TYPE.P2BEOS));
+                out.writeObject(new EOS(TYPE.EOS));
                 out.flush();
 
                 // wait for broker's response
