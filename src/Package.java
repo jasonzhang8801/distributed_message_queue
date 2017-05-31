@@ -174,14 +174,14 @@ class B2ZKOffset extends Package {
     }
 }
 
-class B2PEOS extends Package {
+class P2BEOS extends Package {
     private static final long serialVersionUID = 1L;
 
-    B2PEOS(TYPE type) {
+    P2BEOS(TYPE type) {
         super(type);
     }
 }
 
 enum TYPE {
-    B2BADD, B2BINFO, B2PEOS, B2ZKOFFSET, C2BDATA, C2BUP, P2BDATA, P2BUP, T2B, T2ZK, ZK2BADD, ZK2BTOPIC
+    B2BADD, B2BINFO, B2ZKOFFSET, C2BDATA, C2BUP, P2BDATA, P2BEOS,P2BUP, T2B, T2ZK, ZK2BADD, ZK2BTOPIC
 }

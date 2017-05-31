@@ -100,13 +100,10 @@ public class Producer {
             _workerList.get(random.nextInt(partition))._queue.offer(record);
         }
 
-        // produce finish, send EOFRecord
-        for (int i = 0; i < partition; i++) {
-            _workerList.get(i)._queue.offer(new EOFRecord(_topic, ""));
-        }
-
-        // wait for response from all broker partitions
+        // Producer finish produce record, produceWorker will send P2BEOS
         _finish = true;
+
+        // produceWorker join
         for (int i = 0; i < partition; i++) {
             try {
                 threadList.get(i).join();
@@ -115,7 +112,7 @@ public class Producer {
             }
         }
         long end = System.currentTimeMillis();
-        long throughput = (end - start) / 1000 / _bufferSize;
+        long throughput = _bufferSize / (end - start) / 1000 ;
         System.out.println("Batch Size = " + _batchSize + " Record Size = " + _recordSize + "Throughput = " + throughput);
     }
 
@@ -142,7 +139,8 @@ public class Producer {
                 ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream());
                 ObjectInputStream in = new ObjectInputStream(_socket.getInputStream());
 
-                while (_finish && !_queue.isEmpty()) {
+                // send P2BData
+                while (!_finish) {
                     List<Record> data = new ArrayList<>();
                     while (!_queue.isEmpty() && data.size() < _batchSize) {
                         data.add(_queue.poll());
@@ -150,6 +148,22 @@ public class Producer {
                     out.writeObject(new P2BData(TYPE.P2BDATA, _topic, _partitionNum, data));
                     out.flush();
                 }
+
+                // producer finish, producerWorker continue send remaining record
+                while (!_queue.isEmpty()) {
+                    List<Record> data = new ArrayList<>();
+                    while (!_queue.isEmpty() && data.size() < _batchSize) {
+                        data.add(_queue.poll());
+                    }
+                    out.writeObject(new P2BData(TYPE.P2BDATA, _topic, _partitionNum, data));
+                    out.flush();
+                }
+
+                // send an P2BEOS
+                out.writeObject(new P2BEOS(TYPE.P2BEOS));
+                out.flush();
+
+                // wait for broker's response
                 in.readObject();
 
                 in.close();
