@@ -87,7 +87,7 @@ class BrokerWorker implements Runnable {
                     pack2 = (P2BUp) in.readObject();
                 }
                 fwdSock.close();
-                pack2._partitionList = null;
+
                 pack2._ack = true;
                 out = new ObjectOutputStream(sock.getOutputStream());
                 out.writeObject(pack2);
@@ -167,6 +167,62 @@ class BrokerWorker implements Runnable {
                 out = new ObjectOutputStream(sock.getOutputStream());
                 out.writeObject(pack2);
                 sock.close();
+            }
+            else if (pack1._type == TYPE.C2BDATA) {
+                C2BDATA pack2 = (C2BDATA) pack1;
+                String topic = pack2._topic;
+                int partitionNum = pack2._partitionNum;
+                int offset = pack2._partitionNum;
+                while (true) {
+                    if (Broker.topicMap.containsKey(topic)) {
+                        ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
+                        if (entryMap.containsKey(partitionNum)) {
+                            List<Record> dataList = entryMap.get(partitionNum);
+                            int size = dataList.size();
+                            if (offset < size && offset + 20 <= size) {
+                                List<Record> subList = new ArrayList<>(dataList.subList(offset, offset+20));
+                                pack2._data = subList;
+                                pack2._offset = offset+20;
+                                pack2._partitionNum = -1;
+                                pack2._topic = null;
+                                out = new ObjectOutputStream(sock.getOutputStream());
+                                out.writeObject(pack2);
+                                B2ZKOffset pack3 = new B2ZKOffset(TYPE.B2ZKOFFSET, pack2._topic, pack2._groupID, pack2._partitionNum, pack2._offset);
+                                Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
+                                fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
+                                fwdOut.writeObject(pack3);
+                                fwdSock.close();
+                            }
+                            else if (offset < size && offset + 20 > size) {
+                                List<Record> subList = new ArrayList<>(dataList.subList(offset, size));
+                                pack2._data = subList;
+                                pack2._offset = size;
+                                pack2._partitionNum = -1;
+                                pack2._topic = null;
+                                out = new ObjectOutputStream(sock.getOutputStream());
+                                out.writeObject(pack2);
+                                B2ZKOffset pack3 = new B2ZKOffset(TYPE.B2ZKOFFSET, pack2._topic, pack2._groupID, pack2._partitionNum, pack2._offset);
+                                Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
+                                fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
+                                fwdOut.writeObject(pack3);
+                                fwdSock.close();
+                            }
+                            else {
+                                B2PEOS pack3 = new B2PEOS(TYPE.B2PEOS);
+                                out = new ObjectOutputStream(sock.getOutputStream());
+                                out.writeObject(pack3);
+                                sock.close();
+                            }
+                        }
+                        else {
+                            System.out.println("Broker doesn't own the partition on topic: "+topic);
+                        }
+                    }
+                    else {
+                        System.out.println("Broker doesn't have any data on topic: "+topic);
+                    }
+                }
+
             }
 
 
