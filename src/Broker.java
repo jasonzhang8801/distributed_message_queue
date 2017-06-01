@@ -173,17 +173,18 @@ class BrokerWorker implements Runnable {
                 String topic = pack2._topic;
                 int partitionNum = pack2._partitionNum;
                 int groupID = pack2._groupID;
-                int prevOffset = pack2._offset;
+                int prevOffset = pack2._offset;         //record the previous offset
                 ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
 
-                processC2BData(pack2, sock, out);
+                processC2BData(pack2, sock, out);       //prepare data according to the incoming offset with C2BData pack
+                                                        // and send it back to consumer.
 
                 C2BData pack3;
                 while ((pack3 = (C2BData) in.readObject()) != null && sock.isConnected()) {
                     B2ZKOffset pack4 = new B2ZKOffset(TYPE.B2ZKOFFSET, topic, groupID, partitionNum, prevOffset);
                     Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
                     fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
-                    fwdOut.writeObject(pack4);
+                    fwdOut.writeObject(pack4);          //Commit previous offset to ZooKeeper
                     fwdSock.close();
                     prevOffset = pack3._offset;
                     processC2BData(pack3, sock, out);
@@ -231,11 +232,13 @@ class BrokerWorker implements Runnable {
                         pack._ack = true;
                         out.writeObject(pack);
 
-                    } else {
+                    } else {            //If incoming offset == queue.size(), reply with EOS package instead of C2BData
+                                        //and close connection
+                        out.writeObject(pack);
                         EOS packEOS = new EOS(TYPE.EOS);
                         out.writeObject(packEOS);
                         sock.close();
-                        System.out.println("End of partition. Connection to ");
+                        System.out.println("End of partition. Connection to the consumer is disconnected.");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
