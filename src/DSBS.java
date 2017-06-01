@@ -25,11 +25,6 @@ public class DSBS {
     // DSBS's cluster information
     public static List<String[]> brokerList = new ArrayList<>();
 
-    /**
-     * create the information map to store the topic with the partitions
-     */
-    public static void createInfoMap() {}
-
     public static void main(String[] args) {
         // start server
         (new Thread(new DSBSServer())).start();
@@ -219,6 +214,63 @@ class DSBSServerWorker implements Runnable {
                             System.out.println("Server: sent ACK back");
 
                             break;
+                        }
+                        case P2BUP: {
+                            // forward the partition information to producer
+                            System.out.println("Server: received package with command \"P2BUP\"");
+
+                            // retrieve topic
+                            P2BUp pkg = (P2BUp) revPkg;
+                            String topic = pkg._topic;
+
+                            // check if the topic exists
+                            if (DSBS.infoMap.containsKey(topic)) {
+                                List<String[]> partitionList = new ArrayList<>();
+
+                                List<PartitionEntry> listOfPartitionEntry = DSBS.infoMap.get(topic);
+                                for (int i = 0; i < listOfPartitionEntry.size(); i++) {
+                                    PartitionEntry partitionEntry = listOfPartitionEntry.get(i);
+
+                                    int brokerIdx = partitionEntry._brokerID;
+                                    int partitionNum = partitionEntry._partitionNum;
+                                    String ipAddr = DSBS.brokerList.get(brokerIdx)[0];
+                                    String portNum = DSBS.brokerList.get(brokerIdx)[1];
+
+                                    partitionList.add(new String[]{ipAddr, portNum, Integer.toString(partitionNum)});
+                                }
+
+                                // construct send message
+                                pkg._partitionList = partitionList;
+                                pkg._ack = true;
+
+                                // send ACK
+                                out.writeObject(pkg);
+                                System.out.println("Server: sent ACK back");
+
+                            } else {
+                                System.out.println("Error: please use TopicClient to create topic first");
+
+                                // construct send message
+                                pkg._partitionList = null;
+                                pkg._ack = false;
+
+                                // send NACK
+                                out.writeObject(pkg);
+                                System.out.println("Server: sent NACK back");
+                            }
+
+                            break;
+                        }
+                        case P2BDATA: {
+                            // receive record from producer
+                            
+                            break;
+                        }
+                        case C2BUP: {
+                            break;
+                        }
+                        case C2BDATA: {
+
                         }
                         default: {
                             break;
