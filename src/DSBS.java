@@ -120,11 +120,12 @@ class DSBSServerWorker implements Runnable {
                             // retrieve the brokerList
                             B2BAdd pkg = (B2BAdd) revPkg;
                             DSBS.brokerList = pkg._brokerList;
+                            pkg._brokerList = null;
                             pkg._ack = true;
 
                             // send ACK back
                             out.writeObject(pkg);
-                            System.out.println("Server: send ACK back");
+                            System.out.println("Server: sent ACK back");
 
                             break;
                         }
@@ -175,11 +176,47 @@ class DSBSServerWorker implements Runnable {
                                 int portNum = Integer.parseInt(DSBS.brokerList.get(i)[1]);
 
                                 // skip the current broker
-                                if (ipAddr == DSBS.ipAddr && portNum == DSBS.portNum) continue;
+                                if (ipAddr.equals(DSBS.ipAddr) && portNum == DSBS.portNum) continue;
 
                                 // connect remote broker
+                                try (Socket socket = new Socket(ipAddr, portNum)) {
+                                    try (ObjectOutputStream objOut = new ObjectOutputStream(socket.getOutputStream());
+                                        ObjectInputStream objIn = new ObjectInputStream(socket.getInputStream())) {
 
+                                        // construct send package
+                                        B2BInfo sendPkg_B2BInfo = new B2BInfo(TYPE.B2BINFO, DSBS.infoMap);
+
+                                        // send
+                                        objOut.writeObject(sendPkg_B2BInfo);
+
+                                        // construct rev package
+                                        Package revPkg_B2BInfo;
+
+                                        if ((revPkg_B2BInfo = (Package) objIn.readObject()) != null) {
+                                            if (revPkg_B2BInfo._type == TYPE.B2BINFO && revPkg_B2BInfo._ack) {
+                                                System.out.println("Server: update infoMap at broker with IP " + ipAddr);
+                                            } else {
+                                                System.out.println("Error: failed to update infoMap at broker with IP "
+                                                        + ipAddr);
+                                            }
+                                        }
+                                    }
+                                }
                             }
+                            break;
+                        }
+                        case B2BINFO: {
+                            // update broker's infoMap
+                            System.out.println("Server: received package with command \"B2BINFO\"");
+
+                            B2BInfo pkg = (B2BInfo) revPkg;
+                            DSBS.infoMap = (ConcurrentHashMap<String, List<PartitionEntry>>) pkg._infoMap;
+                            pkg._infoMap = null;
+                            pkg._ack = true;
+
+                            // send ACK
+                            out.writeObject(pkg);
+                            System.out.println("Server: sent ACK back");
 
                             break;
                         }
