@@ -111,7 +111,7 @@ class BrokerWorker implements Runnable {
                     }
                     else {
                         P2BData pack4 =(P2BData) pack3;
-                        BrokerP2BDataProcessor processor2 = new BrokerP2BDataProcessor(pack2);
+                        BrokerP2BDataProcessor processor2 = new BrokerP2BDataProcessor(pack4);
                         Thread t2 = new Thread(processor2);
                         t2.start();
                     }
@@ -172,63 +172,79 @@ class BrokerWorker implements Runnable {
                 C2BData pack2 = (C2BData) pack1;
                 String topic = pack2._topic;
                 int partitionNum = pack2._partitionNum;
-                int offset = pack2._partitionNum;
-                int batchSize = pack2._batchSize;
-                while (true) {
-                    if (Broker.topicMap.containsKey(topic)) {
-                        ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
-                        if (entryMap.containsKey(partitionNum)) {
-                            List<Record> dataList = entryMap.get(partitionNum);
-                            int size = dataList.size();
-                            if (offset < size && offset +  batchSize<= size) {
-                                List<Record> subList = new ArrayList<>(dataList.subList(offset, offset+batchSize));
-                                pack2._data = subList;
-                                pack2._offset = offset+batchSize;
-                                pack2._partitionNum = -1;
-                                pack2._topic = null;
-                                out = new ObjectOutputStream(sock.getOutputStream());
-                                out.writeObject(pack2);
-                                B2ZKOffset pack3 = new B2ZKOffset(TYPE.B2ZKOFFSET, pack2._topic, pack2._groupID, pack2._partitionNum, pack2._offset);
-                                Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
-                                fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
-                                fwdOut.writeObject(pack3);
-                                fwdSock.close();
-                            }
-                            else if (offset < size && offset + batchSize > size) {
-                                List<Record> subList = new ArrayList<>(dataList.subList(offset, size));
-                                pack2._data = subList;
-                                pack2._offset = size;
-                                pack2._partitionNum = -1;
-                                pack2._topic = null;
-                                out = new ObjectOutputStream(sock.getOutputStream());
-                                out.writeObject(pack2);
-                                B2ZKOffset pack3 = new B2ZKOffset(TYPE.B2ZKOFFSET, pack2._topic, pack2._groupID, pack2._partitionNum, pack2._offset);
-                                Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
-                                fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
-                                fwdOut.writeObject(pack3);
-                                fwdSock.close();
-                            }
-                            else {
-                                EOS pack3 = new EOS(TYPE.EOS);
-                                out = new ObjectOutputStream(sock.getOutputStream());
-                                out.writeObject(pack3);
-                                sock.close();
-                            }
-                        }
-                        else {
-                            System.out.println("Broker doesn't own the partition on topic: "+topic);
-                        }
-                    }
-                    else {
-                        System.out.println("Broker doesn't have any data on topic: "+topic);
-                    }
+                int groupID = pack2._groupID;
+                int prevOffset = pack2._offset;
+                ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+
+                processC2BData(pack2, sock, out);
+
+                C2BData pack3;
+                while ((pack3 = (C2BData) in.readObject()) != null && sock.isConnected()) {
+                    B2ZKOffset pack4 = new B2ZKOffset(TYPE.B2ZKOFFSET, topic, groupID, partitionNum, prevOffset);
+                    Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
+                    fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
+                    fwdOut.writeObject(pack4);
+                    fwdSock.close();
+                    prevOffset = pack3._offset;
+                    processC2BData(pack3, sock, out);
                 }
+
 
             }
 
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+        }
+    }
+
+    public static void processC2BData(C2BData pack, Socket sock, ObjectOutputStream out) {
+
+        String topic = pack._topic;
+        int partitionNum = pack._partitionNum;
+        int offset = pack._offset;
+        int batchSize = pack._batchSize;
+
+
+
+        if (Broker.topicMap.containsKey(topic)) {
+            ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
+            if (entryMap.containsKey(partitionNum)) {
+                List<Record> dataList = entryMap.get(partitionNum);
+                int size = dataList.size();
+                try {
+                    if (offset < size && offset + batchSize <= size) {
+                        List<Record> subList = new ArrayList<>(dataList.subList(offset, offset + batchSize));
+                        pack._data = subList;
+                        pack._offset = offset + batchSize;
+                        pack._partitionNum = -1;
+                        pack._topic = null;
+                        pack._ack = true;
+                        out.writeObject(pack);
+
+                    } else if (offset < size && offset + batchSize > size) {
+                        List<Record> subList = new ArrayList<>(dataList.subList(offset, size));
+                        pack._data = subList;
+                        pack._offset = size;
+                        pack._partitionNum = -1;
+                        pack._topic = null;
+                        pack._ack = true;
+                        out.writeObject(pack);
+
+                    } else {
+                        EOS packEOS = new EOS(TYPE.EOS);
+                        out.writeObject(packEOS);
+                        sock.close();
+                        System.out.println("End of partition. Connection to ");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("Broker doesn't own the partition on topic: " + topic);
+            }
+        } else {
+            System.out.println("Broker doesn't have any data on topic: " + topic);
         }
     }
 }
@@ -264,3 +280,4 @@ class BrokerP2BDataProcessor implements Runnable{
         }
     }
 }
+
