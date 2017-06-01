@@ -29,6 +29,7 @@ public class TopicClient {
             } else {
                 out.writeObject(new T2B(TYPE.T2ZK, topic, partition));
             }
+
             in.readObject();
         } catch (ClassNotFoundException | IOException e) {
             e.printStackTrace();
