@@ -263,6 +263,29 @@ class DSBSServerWorker implements Runnable {
                         }
                         case P2BDATA: {
                             // receive record from producer
+                            System.out.println("Server: received package with command \"P2BDATA\"");
+
+                            // process package
+                            P2BData pkg = (P2BData) revPkg;
+                            (new Thread(new DSBSP2BDataHandler(pkg))).start();
+
+                            // receive data stream
+                            while (true) {
+                                Package revPkg1 = (Package) in.readObject();
+
+                                if (revPkg1._type == TYPE.EOS) {
+                                    revPkg1._ack = true;
+                                    out.writeObject(revPkg1);
+                                    break;
+                                }
+                                else if (revPkg1._type == TYPE.P2BDATA) {
+                                    P2BData pkg1 =(P2BData) revPkg1;
+                                    (new Thread(new DSBSP2BDataHandler(pkg1))).start();
+                                } else {
+                                    System.out.println("Error: invalid package type");
+                                    return;
+                                }
+                            }
                             
                             break;
                         }
@@ -412,6 +435,45 @@ class DSBSParserEntry {
     // add command
     List<String> listOfIpAddr = null;
     List<String> listOfPortNum = null;
+}
+
+/**
+ * Handler for record stream from producer
+ */
+class DSBSP2BDataHandler implements Runnable {
+
+    P2BData pkg;
+
+    public DSBSP2BDataHandler(P2BData pkg) {
+        this.pkg = pkg;
+    }
+
+    @Override
+    public void run() {
+        // retrieve data
+        String topic = pkg._topic;
+        List<Record> data = pkg._data;
+        int partitionNum = pkg._partitionNum;
+
+        // check if the topic exists
+        if (DSBS.dataMap.containsKey(topic)) {
+            ConcurrentHashMap<Integer, List<Record>> entryMap = DSBS.dataMap.get(topic);
+            if (entryMap.containsKey(partitionNum)) {
+                List<Record> tmpData = entryMap.get(partitionNum);
+                tmpData.addAll(data);
+                entryMap.put(partitionNum, tmpData);
+            }
+            else {
+                entryMap.put(partitionNum, data);
+            }
+            DSBS.dataMap.put(topic, entryMap);
+        }
+        else {
+            ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
+            entryMap.put(partitionNum, data);
+            DSBS.dataMap.put(topic, entryMap);
+        }
+    }
 }
 
 abstract class DSBSUtility {
