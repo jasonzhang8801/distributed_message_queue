@@ -83,11 +83,11 @@ class ZK2BTopic extends Package {
     String _topic;
     PartitionEntry _partitionEntry;
 
-
     ZK2BTopic(TYPE type, String topic, PartitionEntry partitionEntry) {
         super(type);
         _topic = topic;
         _partitionEntry = partitionEntry;
+
     }
 }
 
