@@ -88,7 +88,7 @@ public class MyZooKeeperAndBroker {
                     e.printStackTrace();
                 }
 
-                System.out.println(_queue);
+                System.out.println(_queue.size());
 
             }
         }
