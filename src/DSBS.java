@@ -1,7 +1,4 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -136,7 +133,7 @@ class DSBSServerWorker implements Runnable {
                             // check package
                             if (topic == null || numOfPart <= 0) {
                                 System.out.println("System error: invalid topic or partition number");
-                                break;
+                                return;
                             }
 
                             // save the topic information
@@ -162,6 +159,7 @@ class DSBSServerWorker implements Runnable {
 
                             } else {
                                 System.out.println("Error: not support duplicated topic");
+                                return;
                             }
 
                             // update other broker's infoMap
@@ -205,9 +203,13 @@ class DSBSServerWorker implements Runnable {
                             System.out.println("Server: received package with command \"B2BINFO\"");
 
                             B2BInfo pkg = (B2BInfo) revPkg;
-                            DSBS.infoMap = (ConcurrentHashMap<String, List<PartitionEntry>>) pkg._infoMap;
+                            DSBS.infoMap.putAll(pkg._infoMap);
                             pkg._infoMap = null;
                             pkg._ack = true;
+
+                            // shouldn't init dataMap
+                            // each broker is only responsible for its own partition
+                            // let consumer or producer to init dataMap
 
                             // send ACK
                             out.writeObject(pkg);
@@ -267,7 +269,7 @@ class DSBSServerWorker implements Runnable {
 
                             // process package
                             P2BData pkg = (P2BData) revPkg;
-                            (new Thread(new DSBSP2BDataHandler(pkg))).start();
+                            (new Thread(new DSBSP2BDataWorker(pkg))).start();
 
                             // receive data stream
                             while (true) {
@@ -280,22 +282,71 @@ class DSBSServerWorker implements Runnable {
                                 }
                                 else if (revPkg1._type == TYPE.P2BDATA) {
                                     P2BData pkg1 =(P2BData) revPkg1;
-                                    (new Thread(new DSBSP2BDataHandler(pkg1))).start();
+                                    (new Thread(new DSBSP2BDataWorker(pkg1))).start();
                                 } else {
                                     System.out.println("Error: invalid package type");
-                                    return;
                                 }
                             }
-                            
+
                             break;
                         }
                         case C2BUP: {
+                            // forward the partition information to consumer
+                            System.out.println("Server: received package with command \"C2BUP\"");
+
+                            // retrieve topic
+                            C2BUp pkg = (C2BUp) revPkg;
+                            String topic = pkg._topic;
+
+                            // check if the topic exists
+                            if (DSBS.infoMap.containsKey(topic)) {
+                                List<String[]> offsetList = new ArrayList<>();
+
+                                List<PartitionEntry> listOfPartitionEntry = DSBS.infoMap.get(topic);
+                                for (int i = 0; i < listOfPartitionEntry.size(); i++) {
+                                    PartitionEntry partitionEntry = listOfPartitionEntry.get(i);
+
+                                    int brokerIdx = partitionEntry._brokerID;
+                                    int partitionNum = partitionEntry._partitionNum;
+                                    String ipAddr = DSBS.brokerList.get(brokerIdx)[0];
+                                    String portNum = DSBS.brokerList.get(brokerIdx)[1];
+
+                                    // In DSBS, broker is stateful
+                                    // each broker doesn't have all offset information
+                                    offsetList.add(new String[]{ipAddr, portNum, Integer.toString(partitionNum), "-1"});
+                                }
+
+                            } else {
+                                System.out.println("Error: no such topic");
+                                // construct send message
+                                pkg._offsetList = null;
+                                pkg._ack = false;
+
+                                // send NACK
+                                out.writeObject(pkg);
+                                System.out.println("Server: sent NACK back");
+                            }
+
                             break;
                         }
                         case C2BDATA: {
+                            // forward the data stream to consumer
+                            // assumption: offset is the index which consumer should start to consume inclusively
+                            System.out.println("Server: received package with command \"C2BDATA\"");
 
+                            // retrieve topic and partition information
+                            C2BData pkg = (C2BData) revPkg;
+
+                            DSBSC2BDataHandler(pkg, out);
+
+                            while ((pkg = (C2BData) in.readObject()) != null) {
+                                DSBSC2BDataHandler(pkg, out);
+                            }
+
+                            break;
                         }
                         default: {
+                            System.out.println("Server: invalid package command");
                             break;
                         }
                     }
@@ -306,6 +357,114 @@ class DSBSServerWorker implements Runnable {
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * handle the data request from consumer
+     * @param pkg
+     * @param out
+     */
+    private void DSBSC2BDataHandler(C2BData pkg, ObjectOutputStream out) {
+
+        String topic = pkg._topic;
+        int partitionNum = pkg._partitionNum;
+        int groupId = pkg._groupID;
+        int batchSize = pkg._batchSize;
+        int offset = pkg._offset; // offset = -1
+
+        // check the batch size
+        if (batchSize <= 0) {
+            System.out.println("Error: invalid batch size");
+            return;
+        }
+
+        // offsetMap for given group, topic, partition
+        Map<Integer, Integer> offsetMap = null;
+
+        // retrieve offset
+        for (PartitionEntry partitionEntry : DSBS.infoMap.get(topic)) {
+            if (partitionEntry._partitionNum == partitionNum) {
+
+                offsetMap = partitionEntry._offsetMap;
+
+                // check if the group exists
+                if (!partitionEntry._offsetMap.containsKey(groupId)) {
+                    partitionEntry._offsetMap.put(groupId, 0);
+                }
+                offset = partitionEntry._offsetMap.get(groupId);
+            }
+        }
+
+        // check if topic exists
+        int newOffset = -1;
+        if (!DSBS.dataMap.containsKey(topic)) {
+            // init dataMap
+            ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
+            entryMap.put(partitionNum, new ArrayList<>());
+
+            DSBS.dataMap.put(topic, entryMap);
+        } else {
+            // check if partition exists
+            if (!DSBS.dataMap.get(topic).containsKey(partitionNum)) {
+                System.out.println("System error: no valid partition number");
+            }
+
+            // partition for given topic
+            List<Record> listOfRecord = DSBS.dataMap.get(topic).get(partitionNum);
+            int size = listOfRecord.size();
+
+            // check if the offset is valid
+            if (offset < 0 || offset > size) {
+                System.out.println("Error: invalid offset");
+                return;
+            }
+
+            // check if data stream ends
+            if (offset == size) {
+                try {
+                    out.writeObject(pkg);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                // send EOS
+                EOS sendPkg_EOS = new EOS(TYPE.EOS);
+                try {
+                    out.writeObject(sendPkg_EOS);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("Server: end of data stream to consumer");
+                return;
+            }
+
+            // assign the list of record with required batch size
+            if (offset + batchSize <= size) {
+                pkg._data = new ArrayList<>(listOfRecord.subList(offset, offset + batchSize));
+                newOffset = offset + batchSize;
+
+
+            } else if (offset + batchSize > size) {
+                pkg._data = new ArrayList<>(listOfRecord.subList(offset, size));
+                newOffset = size;
+            }
+
+            // send data back
+            pkg._offset = newOffset;
+            pkg._ack = true;
+
+            try {
+                out.writeObject(pkg);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Server: sent a list of record back to consumer");
+        }
+
+        // commit the offset
+        if (offsetMap != null) {
+            offsetMap.put(groupId, newOffset);
         }
     }
 }
@@ -440,11 +599,11 @@ class DSBSParserEntry {
 /**
  * Handler for record stream from producer
  */
-class DSBSP2BDataHandler implements Runnable {
+class DSBSP2BDataWorker implements Runnable {
 
     P2BData pkg;
 
-    public DSBSP2BDataHandler(P2BData pkg) {
+    public DSBSP2BDataWorker(P2BData pkg) {
         this.pkg = pkg;
     }
 
