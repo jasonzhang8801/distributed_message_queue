@@ -16,7 +16,6 @@ public class MyZooKeeperAndBroker {
         Server server = new Server();
         Thread t = new Thread(server);
         t.start();
-        t.join();
 
         System.out.println("MyZooKeeperAndBroker exit");
 

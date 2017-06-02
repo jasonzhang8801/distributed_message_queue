@@ -67,6 +67,8 @@ public class Producer {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
+
+        System.out.println("connectBroker() finish");
     }
 
     // produce data
