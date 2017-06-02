@@ -14,7 +14,7 @@ public class Producer {
     private static int _bufferSize = 100000;
     private static int _batchSize = 20;
     private static int _recordSize = 4;
-    private static List<String[]> _destList;
+    private static List<String[]> _destList;        // {partitionIP, partitionPort, partitionNum}
     private static List<ProducerWorker> _workerList = new ArrayList<>();
     private static volatile boolean _finish;
 
