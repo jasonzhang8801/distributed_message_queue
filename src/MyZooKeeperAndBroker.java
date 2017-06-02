@@ -4,17 +4,18 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
 /**
  * Created by Kawayipk on 6/1/17.
  */
-public class MyBroker {
+public class MyZooKeeperAndBroker {
     public static void main(String[] args) {
         Server server = new Server();
         new Thread(server).start();
-        System.out.println("MyBroker exit");
+        System.out.println("MyZooKeeperAndBroker exit");
 
     }
 
@@ -53,12 +54,20 @@ public class MyBroker {
 
             @Override
             public void run() {
-                P2BData p = null;
+                Package p = null;
                 try(ObjectInputStream in = new ObjectInputStream(_socket.getInputStream());
                     ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream())) {
 
-                    while(((Package)in.readObject())._type == TYPE.P2BDATA) {
-                        _queue.offer(p);
+                    if((p = (Package)in.readObject())._type == TYPE.P2BUP) {
+                        P2BUp p2bup = (P2BUp)in.readObject();
+                        p2bup._partitionList = new ArrayList<>();
+                        p2bup._partitionList.add(new String[]{InetAddress.getLocalHost().getHostAddress(), _serverSocket.getLocalPort()+""});
+                    } else {
+                        while((p = (Package)in.readObject())._type == TYPE.P2BDATA) {
+
+                            _queue.offer((Package)in.readObject());
+                        }
+
                     }
 
                     p._ack = true;
@@ -73,5 +82,4 @@ public class MyBroker {
             }
         }
     }
-
 }
