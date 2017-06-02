@@ -103,7 +103,6 @@ public class Producer {
         long end = System.currentTimeMillis();
         System.out.println(start + " " + end);
         long throughput = _bufferSize / (end - start);
-
         System.out.println("Buffer Size = " + _bufferSize + " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + "/ms");
     }
 
