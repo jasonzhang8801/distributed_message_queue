@@ -120,6 +120,10 @@ class ZooKeeperWorker implements Runnable {
             TYPE type = pack1._type;
             switch (type) {
 
+                default: {
+                    System.out.println("Error. Unknown package type.");
+                }
+
                 case T2ZK: {
                     T2ZK pack2 = (T2ZK) pack1;
                     String topic = pack2._topic;
