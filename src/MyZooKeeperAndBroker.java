@@ -22,11 +22,16 @@ public class MyZooKeeperAndBroker {
     private static class Server implements Runnable {
 
         private static ServerSocket _serverSocket;
+        private static String _IP;
+        private static int _port;
+
 
         private Server() {
             try {
                 _serverSocket = new ServerSocket(0);
-                System.out.println(InetAddress.getLocalHost().getHostAddress() + " " + _serverSocket.getLocalPort());
+                _IP = InetAddress.getLocalHost().getHostAddress();
+                _port = _serverSocket.getLocalPort();
+                System.out.println(_IP + " " + _port);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -62,10 +67,10 @@ public class MyZooKeeperAndBroker {
                         P2BUp p2bup = (P2BUp)in.readObject();
 
                         System.out.println("in run() P2BUp");
-                        System.out.println(InetAddress.getLocalHost().getHostAddress() + " " + _serverSocket.getLocalPort());
+                        System.out.println(_IP + " " + _port);
 
                         p2bup._partitionList = new ArrayList<>();
-                        p2bup._partitionList.add(new String[]{InetAddress.getLocalHost().getHostAddress(), _serverSocket.getLocalPort()+"", 1+""});
+                        p2bup._partitionList.add(new String[]{_IP, _port+"", 1+""});
                     } else {
                         System.out.println("in run() P2BDdata");
                         while((p = (Package)in.readObject())._type == TYPE.P2BDATA) {
