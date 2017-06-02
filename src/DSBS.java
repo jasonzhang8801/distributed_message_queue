@@ -316,6 +316,13 @@ class DSBSServerWorker implements Runnable {
                                     offsetList.add(new String[]{ipAddr, portNum, Integer.toString(partitionNum), "-1"});
                                 }
 
+                                // send ACK
+                                pkg._offsetList = offsetList;
+                                pkg._ack = true;
+
+                                out.writeObject(pkg);
+                                System.out.println("Server: sent ACK back");
+
                             } else {
                                 System.out.println("Error: no such topic");
                                 // construct send message
