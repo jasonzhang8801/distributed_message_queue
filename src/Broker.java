@@ -84,10 +84,7 @@ class BrokerWorker implements Runnable {
                 fwdOut.writeObject(pack2);
 
                 fwdIn = new ObjectInputStream(fwdSock.getInputStream());
-                pack2 = null;
-                while (pack2 == null) {
-                    pack2 = (P2BUp) in.readObject();
-                }
+                pack2 = (P2BUp) in.readObject();
                 fwdSock.close();
 
                 pack2._ack = true;
