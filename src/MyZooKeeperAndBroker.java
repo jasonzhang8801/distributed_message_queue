@@ -54,14 +54,18 @@ public class MyZooKeeperAndBroker {
 
             @Override
             public void run() {
-                Package p = null;
+                Package p;
                 try(ObjectInputStream in = new ObjectInputStream(_socket.getInputStream());
                     ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream())) {
 
                     if((p = (Package)in.readObject())._type == TYPE.P2BUP) {
                         P2BUp p2bup = (P2BUp)in.readObject();
+
+                        System.out.println("in run()");
+                        System.out.println(InetAddress.getLocalHost().getHostAddress() + " " + _serverSocket.getLocalPort());
+
                         p2bup._partitionList = new ArrayList<>();
-                        p2bup._partitionList.add(new String[]{InetAddress.getLocalHost().getHostAddress(), _serverSocket.getLocalPort()+""});
+                        p2bup._partitionList.add(new String[]{InetAddress.getLocalHost().getHostAddress(), _serverSocket.getLocalPort()+"", 1+""});
                     } else {
                         while((p = (Package)in.readObject())._type == TYPE.P2BDATA) {
 
@@ -72,7 +76,6 @@ public class MyZooKeeperAndBroker {
 
                     p._ack = true;
                     out.writeObject(p);
-
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
