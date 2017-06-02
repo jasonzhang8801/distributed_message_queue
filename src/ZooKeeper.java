@@ -1,3 +1,4 @@
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -7,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+
 
 /**
  * Created by YueLiu on 5/27/17.
@@ -99,6 +101,7 @@ public class ZooKeeper {
     }
 
 }
+
 
 
 class ZooKeeperWorker implements Runnable {
@@ -288,6 +291,7 @@ class ZooKeeperWorker implements Runnable {
 }
 
 class PartitionEntry implements Serializable {
+
     private static final long serialVersionUID = 1L;
 
     int _brokerID;
