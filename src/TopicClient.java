@@ -27,7 +27,7 @@ public class TopicClient {
             if (isZK) {
                 out.writeObject(new T2ZK(TYPE.T2ZK, topic, partition));
             } else {
-                out.writeObject(new T2B(TYPE.T2ZK, topic, partition));
+                out.writeObject(new T2B(TYPE.T2B, topic, partition));
             }
 
             in.readObject();

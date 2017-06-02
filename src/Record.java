@@ -11,12 +11,3 @@ class Record {
     }
 }
 
-class EOFRecord {
-    String _topic;
-    String _value;
-
-    EOFRecord(String topic, String value) {
-        _topic = topic;
-        _value = value;
-    }
-}
