@@ -50,6 +50,7 @@ public class ZooKeeper {
                     System.out.println("Invalid input, please type again.");
                 }
             }
+            System.out.println("ZooKeeper is listening for incoming requests...");
 
 
             while (true) {
@@ -75,7 +76,7 @@ public class ZooKeeper {
             ObjectInputStream fwdIn = new ObjectInputStream(fwdSock.getInputStream());
 
             ZK2BAdd inPack;
-            while ((inPack = (ZK2BAdd) fwdIn.readObject()) != null) { }
+            inPack = (ZK2BAdd) fwdIn.readObject();
             if (inPack != null && inPack._ack) {
                 ZooKeeper._brokerList.add(new String[] {ip, Integer.toString(port)});
                 System.out.println("Broker: "+ip+":"+port+" added.");
@@ -156,8 +157,8 @@ class ZooKeeperWorker implements Runnable {
                             fwdOut.writeObject(outPack);
 
                             ZK2BTopic inPack;
-                            while ((inPack = (ZK2BTopic) fwdIn.readObject()) != null) {
-                            }
+                            inPack = (ZK2BTopic) fwdIn.readObject();
+
                             if (inPack != null && inPack._ack) {
                                 System.out.println("Topic " + topic + " is registered on broker " + brokerIp + ":" + brokerPort+".");
                             }
