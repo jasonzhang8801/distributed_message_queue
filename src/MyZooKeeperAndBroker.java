@@ -61,12 +61,13 @@ public class MyZooKeeperAndBroker {
                     if((p = (Package)in.readObject())._type == TYPE.P2BUP) {
                         P2BUp p2bup = (P2BUp)in.readObject();
 
-                        System.out.println("in run()");
+                        System.out.println("in run() P2BUp");
                         System.out.println(InetAddress.getLocalHost().getHostAddress() + " " + _serverSocket.getLocalPort());
 
                         p2bup._partitionList = new ArrayList<>();
                         p2bup._partitionList.add(new String[]{InetAddress.getLocalHost().getHostAddress(), _serverSocket.getLocalPort()+"", 1+""});
                     } else {
+                        System.out.println("in run() P2BDdata");
                         while((p = (Package)in.readObject())._type == TYPE.P2BDATA) {
 
                             _queue.offer((Package)in.readObject());
@@ -74,6 +75,7 @@ public class MyZooKeeperAndBroker {
 
                     }
 
+                    System.out.println("in run() exit");
                     p._ack = true;
                     out.writeObject(p);
                 } catch (IOException | ClassNotFoundException e) {
