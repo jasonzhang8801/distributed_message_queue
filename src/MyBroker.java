@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
@@ -24,6 +25,7 @@ public class MyBroker {
         private Server() {
             try {
                 _serverSocket = new ServerSocket(0);
+                System.out.println(InetAddress.getLocalHost().getHostAddress() + " " + _serverSocket.getLocalPort());
             } catch (IOException e) {
                 e.printStackTrace();
             }
