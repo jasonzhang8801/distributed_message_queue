@@ -67,8 +67,6 @@ public class Producer {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-
-        System.out.println("connectBroker() finish");
     }
 
     // produce data
@@ -115,7 +113,7 @@ public class Producer {
         System.out.println(start + " " + end);
         long throughput = _bufferSize / (end - start) ;
 
-        System.out.println("Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + "/ms");
+        System.out.println("Buffer Size = " + _bufferSize +  " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + "/ms");
     }
 
 
