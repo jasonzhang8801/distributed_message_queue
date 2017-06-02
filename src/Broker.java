@@ -74,6 +74,7 @@ class BrokerWorker implements Runnable {
     public void run() {
         try {
             in = new ObjectInputStream(sock.getInputStream());
+            out = new ObjectOutputStream(sock.getOutputStream());
             Package pack1 = (Package) in.readObject();
             if (pack1._type == TYPE.P2BUP) {
                 P2BUp pack2 = (P2BUp) pack1;
@@ -89,7 +90,6 @@ class BrokerWorker implements Runnable {
                 fwdSock.close();
 
                 pack2._ack = true;
-                out = new ObjectOutputStream(sock.getOutputStream());
                 out.writeObject(pack2);
                 sock.close();
             }
@@ -104,7 +104,6 @@ class BrokerWorker implements Runnable {
                     if (pack3._type == TYPE.EOS) {
                         EOS pack4 = (EOS) pack3;
                         pack4._ack = true;
-                        out = new ObjectOutputStream(sock.getOutputStream());
                         out.writeObject(pack4);
                         sock.close();
                         break;
@@ -124,7 +123,6 @@ class BrokerWorker implements Runnable {
                 pack2._zkIP = null;
                 pack2._zkPort = -1;
                 pack2._ack = true;
-                out = new ObjectOutputStream(sock.getOutputStream());
                 out.writeObject(pack2);
                 sock.close();
             }
@@ -147,7 +145,6 @@ class BrokerWorker implements Runnable {
                 pack2._partitionEntry = null;
                 pack2._topic = null;
                 pack2._ack = true;
-                out = new ObjectOutputStream(sock.getOutputStream());
                 out.writeObject(pack2);
                 sock.close();
             }
@@ -164,7 +161,6 @@ class BrokerWorker implements Runnable {
                 }
                 fwdSock.close();
                 pack2._ack = true;
-                out = new ObjectOutputStream(sock.getOutputStream());
                 out.writeObject(pack2);
                 sock.close();
             }
