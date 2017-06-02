@@ -344,9 +344,21 @@ class DSBSServerWorker implements Runnable {
                             // retrieve topic and partition information
                             C2BData pkg = (C2BData) revPkg;
 
+                            // TEST ONLY
+                            // FAKE DATA
+                            int size = 100;
+                            generateFakeData(pkg._topic, pkg._partitionNum, size);
+                            System.out.println("Faking " + size + " records ...");
+
                             DSBSC2BDataHandler(pkg, out);
 
-                            while ((pkg = (C2BData) in.readObject()) != null) {
+                            Package revPkg1;
+                            while ((revPkg1 = (Package) in.readObject()) != null) {
+                                if (revPkg1._type == TYPE.EOS) {
+                                    System.out.println("Server: reached the end of data stream");
+                                    break;
+                                }
+
                                 DSBSC2BDataHandler(pkg, out);
                             }
 
@@ -365,6 +377,23 @@ class DSBSServerWorker implements Runnable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Fake data
+     * @param topic
+     * @param size
+     */
+    private static void generateFakeData(String topic, int partitionNum, int size) {
+        List<Record> records = new ArrayList<>();
+        for(int i=0; i< size;i++) {
+            Record r = new Record(topic, "this some fake ass data hahahaha!");
+            records.add(r);
+        }
+
+        ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
+        entryMap.put(partitionNum, records);
+        DSBS.dataMap.put(topic, entryMap);
     }
 
     /**
@@ -411,6 +440,15 @@ class DSBSServerWorker implements Runnable {
             entryMap.put(partitionNum, new ArrayList<>());
 
             DSBS.dataMap.put(topic, entryMap);
+
+            // send NACK
+            try {
+                out.writeObject(pkg);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Server: empty records");
+
         } else {
             // check if partition exists
             if (!DSBS.dataMap.get(topic).containsKey(partitionNum)) {
@@ -428,23 +466,23 @@ class DSBSServerWorker implements Runnable {
             }
 
             // check if data stream ends
-            if (offset == size) {
-                try {
-                    out.writeObject(pkg);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                // send EOS
-                EOS sendPkg_EOS = new EOS(TYPE.EOS);
-                try {
-                    out.writeObject(sendPkg_EOS);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("Server: end of data stream to consumer");
-                return;
-            }
+//            if (offset == size) {
+//                try {
+//                    out.writeObject(pkg);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                // send EOS
+//                EOS sendPkg_EOS = new EOS(TYPE.EOS);
+//                try {
+//                    out.writeObject(sendPkg_EOS);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//                System.out.println("Server: end of data stream to consumer");
+//                return;
+//            }
 
             // assign the list of record with required batch size
             if (offset + batchSize <= size) {
