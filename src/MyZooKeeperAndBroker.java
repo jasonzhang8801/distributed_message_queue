@@ -82,13 +82,13 @@ public class MyZooKeeperAndBroker {
                     }
 
                     System.out.println("in run() exit");
+                    System.out.println("send #package = " + _queue.size());
                     p._ack = true;
                     out.writeObject(p);
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
 
-                System.out.println(_queue.size());
 
             }
         }

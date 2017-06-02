@@ -135,6 +135,7 @@ public class Producer {
 
         @Override
         public void run() {
+            int count = 0;
             try (ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream());
                  ObjectInputStream in = new ObjectInputStream(_socket.getInputStream())){
 
@@ -144,9 +145,11 @@ public class Producer {
                     while (!_queue.isEmpty() && data.size() < _batchSize) {
                         data.add(_queue.poll());
                     }
+                    count++;
                     out.writeObject(new P2BData(TYPE.P2BDATA, _topic, _partitionNum, data));
                 }
 
+                System.out.println("send #package = " + count);
                 // send P2BEOS
                 out.writeObject(new EOS(TYPE.EOS));
 
