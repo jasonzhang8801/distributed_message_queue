@@ -76,7 +76,6 @@ public class MyZooKeeperAndBroker {
                     } else {
                         System.out.println("in run() P2BDdata");
                         while((p = (Package)in.readObject())._type == TYPE.P2BDATA) {
-
                             _queue.offer(p);
                         }
 
