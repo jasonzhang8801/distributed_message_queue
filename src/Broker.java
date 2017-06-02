@@ -44,6 +44,7 @@ public class Broker {
             port = srvSock.getLocalPort();
             ip = InetAddress.getLocalHost().getHostAddress().toString();
             System.out.println("BrokerServer is starting up...");
+            System.out.println("Broker ip: " + ip + ", port: " + port);
 
             while (true) {
                 Socket sock = srvSock.accept();
