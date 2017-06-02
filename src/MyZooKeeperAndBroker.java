@@ -65,20 +65,21 @@ public class MyZooKeeperAndBroker {
                 try(ObjectInputStream in = new ObjectInputStream(_socket.getInputStream());
                     ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream())) {
 
-                    if((p = (Package)in.readObject())._type == TYPE.P2BUP) {
-                        P2BUp p2bup = (P2BUp)p;
-
+                    p = (Package)in.readObject();
+                    if(p._type == TYPE.P2BUP) {
                         System.out.println("in run() P2BUp");
-                        System.out.println(_IP + " " + _port);
+
+                        P2BUp p2bup = (P2BUp)p;
+                        _queue.offer(p);
 
                         p2bup._partitionList = new ArrayList<>();
                         p2bup._partitionList.add(new String[]{_IP, _port+"", 1+""});
                     } else {
                         System.out.println("in run() P2BDdata");
-                        while((p = (Package)in.readObject())._type == TYPE.P2BDATA) {
-                            _queue.offer(p);
-                        }
 
+                        do {
+                            _queue.offer(p);
+                        } while ((p = (Package)in.readObject())._type == TYPE.P2BDATA);
                     }
 
                     System.out.println("in run() exit");
