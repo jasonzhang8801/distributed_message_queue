@@ -7,6 +7,8 @@ import java.net.UnknownHostException;
 import java.util.*;
 
 public class ConsumerWorker implements Runnable {
+	private static final int RECORD_CNT_LMT = 100;
+
     private Thread _thread;
     private String _threadName;
     private String _topic;
@@ -55,18 +57,22 @@ public class ConsumerWorker implements Runnable {
             System.out.println("Socket connection established");
             outStream.writeObject(datapackage);
             System.out.println("initial consumption request package sent");
+			int recordcount = 0;
             while (true) {
-            		Package p = (Package)inStream.readObject();
-            		if (p._type == TYPE.EOS) {
-            			break;
-            		}
+				Package p = (Package)inStream.readObject();
                 datapackage = (C2BData)p;
                 printDataBatch(datapackage);
+				recordcount += datapackage._data.size();
+				if (recordcount >= RECORD_CNT_LMT) break;
+				outStream.writeObject(datapackage); // hotfix
             }
+			outStream.writeObject(new EOS(TYPE.EOS));
             System.out.println(_threadName + " Data consumption complete");
+
+			outStream.close();
+			inStream.close();
             socket.close();
-            outStream.close();
-            inStream.close();
+
     		} catch (Exception e) {
     			e.printStackTrace();
     		}
