@@ -18,20 +18,11 @@ public class Producer {
     private static List<ProducerWorker> _workerList = new ArrayList<>();
     private static volatile boolean _finish;
 
-//    private static Server _server;
-
     public static void main(String[] args) {
-//        serverStart();
         configure();
         connectBroker();
         produce();
     }
-
-    // server start
-//    private static void serverStart() {
-//        _server = new Server();
-//        new Thread(_server).start();
-//    }
 
 
     // configure topic, bufferSize, batchSize and recordSize
@@ -111,9 +102,9 @@ public class Producer {
         // calculate throughput
         long end = System.currentTimeMillis();
         System.out.println(start + " " + end);
-        long throughput = _bufferSize / (end - start) ;
+        long throughput = _bufferSize / (end - start);
 
-        System.out.println("Buffer Size = " + _bufferSize +  " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + "/ms");
+        System.out.println("Buffer Size = " + _bufferSize + " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + "/ms");
     }
 
 
@@ -137,7 +128,7 @@ public class Producer {
         public void run() {
             int count = 0;
             try (ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream());
-                 ObjectInputStream in = new ObjectInputStream(_socket.getInputStream())){
+                 ObjectInputStream in = new ObjectInputStream(_socket.getInputStream())) {
 
                 // send P2BData
                 while (!_finish || !_queue.isEmpty()) {
@@ -163,42 +154,4 @@ public class Producer {
             }
         }
     }
-
-
-//    private static class Server implements Runnable {
-//
-//        private static ServerSocket _serverSocket;
-//
-//        private Server() {
-//            try {
-//                _serverSocket = new ServerSocket(0);
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//
-//        @Override
-//        public void run() {
-//            while (true) {
-//                try {
-//                    new Thread(new ServerWorker(_serverSocket.accept())).start();
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        }
-//    }
-//
-//    private static class ServerWorker implements Runnable {
-//        private Socket _socket;
-//
-//        private ServerWorker(Socket socket) {
-//            _socket = socket;
-//        }
-//
-//        @Override
-//        public void run() {
-//
-//        }
-//    }
 }
