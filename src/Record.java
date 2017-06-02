@@ -13,10 +13,5 @@ class Record implements Serializable{
         _topic = topic;
         _value = value;
     }
-
-    @Override
-    public String toString() {
-        return _topic + " " + _value + " ";
-    }
 }
 
