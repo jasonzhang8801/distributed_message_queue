@@ -12,9 +12,12 @@ import java.util.Queue;
  * Created by Kawayipk on 6/1/17.
  */
 public class MyZooKeeperAndBroker {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         Server server = new Server();
-        new Thread(server).start();
+        Thread t = new Thread(server);
+        t.start();
+        t.join();
+
         System.out.println("MyZooKeeperAndBroker exit");
 
     }
