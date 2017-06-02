@@ -101,6 +101,11 @@ class P2BUp extends Package {
         super(type);
         _topic = topic;
     }
+
+    @Override
+    public String toString() {
+        return _topic + " " + _partitionList + " ";
+    }
 }
 
 class P2BData extends Package {
@@ -122,6 +127,11 @@ class P2BData extends Package {
         _topic = pack._topic;
         _partitionNum = pack._partitionNum;
         _data = pack._data;
+    }
+
+    @Override
+    public String toString() {
+        return _topic + " " + _partitionNum + " " + _data + " ";
     }
 }
 

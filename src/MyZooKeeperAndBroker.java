@@ -66,7 +66,7 @@ public class MyZooKeeperAndBroker {
                     ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream())) {
 
                     if((p = (Package)in.readObject())._type == TYPE.P2BUP) {
-                        P2BUp p2bup = (P2BUp)in.readObject();
+                        P2BUp p2bup = (P2BUp)p;
 
                         System.out.println("in run() P2BUp");
                         System.out.println(_IP + " " + _port);
@@ -77,7 +77,7 @@ public class MyZooKeeperAndBroker {
                         System.out.println("in run() P2BDdata");
                         while((p = (Package)in.readObject())._type == TYPE.P2BDATA) {
 
-                            _queue.offer((Package)in.readObject());
+                            _queue.offer(p);
                         }
 
                     }
