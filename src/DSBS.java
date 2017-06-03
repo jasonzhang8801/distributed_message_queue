@@ -278,6 +278,12 @@ class DSBSServerWorker implements Runnable {
                                 if (revPkg1._type == TYPE.EOS) {
                                     revPkg1._ack = true;
                                     out.writeObject(revPkg1);
+
+                                    // TEST ONLY
+                                    // print out the length of queue
+                                    System.out.println("Server: topic " + pkg._topic
+                                            + " partition " + pkg._partitionNum
+                                            + " queue size " + DSBS.dataMap.get(pkg._topic).get(pkg._partitionNum).size());
                                     break;
                                 }
                                 else if (revPkg1._type == TYPE.P2BDATA) {
@@ -346,9 +352,9 @@ class DSBSServerWorker implements Runnable {
 
                             // TEST ONLY
                             // FAKE DATA
-                            int size = 100;
-                            generateFakeData(pkg._topic, pkg._partitionNum, size);
-                            System.out.println("Faking " + size + " records ...");
+//                            int size = 100;
+//                            generateFakeData(pkg._topic, pkg._partitionNum, size);
+//                            System.out.println("Faking " + size + " records ...");
 
                             DSBSC2BDataHandler(pkg, out);
 
