@@ -7,7 +7,7 @@ import java.net.UnknownHostException;
 import java.util.*;
 
 public class ConsumerWorker implements Runnable {
-	private static final int RECORD_CNT_LMT = 100;
+	private static final int RECORD_CNT_LMT = 100000;
 
     private Thread _thread;
     private String _threadName;
