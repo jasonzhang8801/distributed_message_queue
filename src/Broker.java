@@ -80,19 +80,19 @@ class BrokerWorker implements Runnable {
             out = new ObjectOutputStream(sock.getOutputStream());
             Package pack1 = (Package) in.readObject();
             if (pack1._type == TYPE.P2BUP) {
-                System.out.println("Broker received P2BUp");
+                //System.out.println("Broker received P2BUp");
                 P2BUp pack2 = (P2BUp) pack1;
                 Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
                 fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
                 fwdOut.writeObject(pack2);
-                System.out.println("Broker forwarded P2BUp to ZK");
+                //System.out.println("Broker forwarded P2BUp to ZK");
                 fwdIn = new ObjectInputStream(fwdSock.getInputStream());
                 pack2 = (P2BUp) fwdIn.readObject();
                 fwdSock.close();
 
                 pack2._ack = true;
                 out.writeObject(pack2);
-                System.out.println("Broker sent back P2BUp");
+                //System.out.println("Broker sent back P2BUp");
                 sock.close();
             }
             else if (pack1._type == TYPE.P2BDATA) {
@@ -157,13 +157,13 @@ class BrokerWorker implements Runnable {
                 C2BUp pack2 = (C2BUp) pack1;
                 Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
                 fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
-                fwdOut.writeObject(pack2);
+                fwdOut.writeObject(pack2);  //forward to ZooKeeper
 
                 fwdIn = new ObjectInputStream(fwdSock.getInputStream());
                 pack2 = (C2BUp) fwdIn.readObject();
                 fwdSock.close();
                 pack2._ack = true;
-                out.writeObject(pack2);
+                out.writeObject(pack2);     //reply back to Consumer of partition Info
                 sock.close();
             }
             else if (pack1._type == TYPE.C2BDATA) {
@@ -171,40 +171,43 @@ class BrokerWorker implements Runnable {
                 String topic = pack2._topic;
                 int partitionNum = pack2._partitionNum;
                 int groupID = pack2._groupID;
-                int prevOffset = pack2._offset;         //record the previous offset
-                ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+                int prevOffset = pack2._offset;
+
+                Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
+                fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
+                                      //record the previous offset
+
 
                 processC2BData(pack2, out);       //prepare data according to the incoming offset with C2BData pack
                                                         // and send it back to consumer.
 
-            /*    List<Record> subList = new ArrayList<>();
-                subList.add(new Record("a","123"));
-                subList.add(new Record("a","3"));
-                subList.add(new Record("a","2"));
-                pack2._data = subList;
-                pack2._offset = -1;
-                pack2._partitionNum = -1;
-                pack2._topic = null;
-                pack2._ack = true;
-                out.writeObject(pack2);
-                System.out.println("sent back data");
-                EOS packEOS = new EOS(TYPE.EOS);
-                out.writeObject(packEOS);
-                System.out.println("sent back EOS");
-            */
+                Package pack3;
+                while (true) {
+                    pack3 = (Package) in.readObject();
+                    if (pack3._type == TYPE.C2BDATA) {
+                        pack3 = (C2BData) pack3;
+                        B2ZKOffset pack4 = new B2ZKOffset(TYPE.B2ZKOFFSET, topic, groupID, partitionNum, prevOffset);
 
-                C2BData pack3;
-             /*   while (true) {
-                    pack3 = (C2BData) in.readObject();
-                    B2ZKOffset pack4 = new B2ZKOffset(TYPE.B2ZKOFFSET, topic, groupID, partitionNum, prevOffset);
-                    Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
-                    fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
-                    fwdOut.writeObject(pack4);          //Commit previous offset to ZooKeeper
-                    fwdSock.close();
-                    prevOffset = pack3._offset;
-                    processC2BData(pack3, sock, out);
-                } */
-                  while (sock.isConnected() && (pack3 = (C2BData) in.readObject()) != null) {
+                        fwdOut.writeObject(pack4);          //Commit previous offset to ZooKeeper
+                        fwdSock.close();
+                        prevOffset = ((C2BData) pack3)._offset;
+                        if (!processC2BData((C2BData)pack3, out)) {
+
+                            sock.close();
+                            fwdOut.close();
+                            break;
+                        }
+                    }
+                    else if (pack3._type == TYPE.EOS) {
+                        sock.close();
+                        fwdOut.close();
+                        break;
+                    }
+
+
+                }
+
+            /*    while (sock.isConnected() && (pack3 = (C2BData) in.readObject()) != null) {
                     B2ZKOffset pack4 = new B2ZKOffset(TYPE.B2ZKOFFSET, topic, groupID, partitionNum, prevOffset);
                     Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
                     fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
@@ -216,7 +219,7 @@ class BrokerWorker implements Runnable {
                     }
 
                 }
-
+            */
 
             }
 
@@ -240,8 +243,12 @@ class BrokerWorker implements Runnable {
             if (entryMap.containsKey(partitionNum)) {
                 List<Record> dataList = entryMap.get(partitionNum);
                 int size = dataList.size();
+                //System.out.println("partition size = " + size);
+                //System.out.println("offset = " + offset);
+                //System.out.println("batchsize = " + batchSize);
                 try {
                     if (offset < size && offset + batchSize <= size) {
+                        System.out.println("Enter first clause");
                         List<Record> subList = new ArrayList<>(dataList.subList(offset, offset + batchSize));
                         pack._data = subList;
                         pack._offset = offset + batchSize;
@@ -249,9 +256,11 @@ class BrokerWorker implements Runnable {
                         pack._topic = null;
                         pack._ack = true;
                         out.writeObject(pack);
+                        System.out.println("Finished first clause and sent back data package");
                         return true;
 
                     } else if (offset < size && offset + batchSize > size) {
+                        System.out.println("Enter second clause");
                         List<Record> subList = new ArrayList<>(dataList.subList(offset, size));
                         pack._data = subList;
                         pack._offset = size;
@@ -263,6 +272,7 @@ class BrokerWorker implements Runnable {
 
                     } else {            //If incoming offset == queue.size(), reply with EOS package instead of C2BData
                                         //and close connection
+                        System.out.println("Enter third clause");
                         out.writeObject(pack);
                         EOS packEOS = new EOS(TYPE.EOS);
                         out.writeObject(packEOS);

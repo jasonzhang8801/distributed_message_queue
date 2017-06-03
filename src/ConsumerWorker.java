@@ -56,6 +56,8 @@ public class ConsumerWorker implements Runnable {
             ObjectInputStream inStream = new ObjectInputStream(socket.getInputStream());
             System.out.println("Socket connection established");
             outStream.writeObject(datapackage);
+
+
             System.out.println("initial consumption request package sent");
 			int recordcount = 0;
             while (true) {
@@ -65,6 +67,7 @@ public class ConsumerWorker implements Runnable {
 				recordcount += datapackage._data.size();
 				if (recordcount >= RECORD_CNT_LMT) break;
 				outStream.writeObject(datapackage); // hotfix
+
             }
 			outStream.writeObject(new EOS(TYPE.EOS));
             System.out.println(_threadName + " Data consumption complete");
