@@ -117,7 +117,8 @@ class BrokerWorker implements Runnable {
                         pack4._ack = true;
                         out.writeObject(pack4);
 
-                        System.out.println(Broker.topicMap.get(topic).get(num).size());
+                        System.out.println("Broker received number of records on one partition : "
+                                +Broker.topicMap.get(topic).get(num).size());
                         break;
                     }
                     else {
@@ -250,7 +251,8 @@ class BrokerWorker implements Runnable {
                         pack._offset = offset + batchSize;
                         pack._ack = true;
                         out.writeObject(pack);
-                        System.out.println("Broker send a batch of List<Record> with size = "+ subList.size());
+                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+                                +" from partition " + partitionNum);
                         return true;
 
                     } else if (offset < size && offset + batchSize > size) {
@@ -260,7 +262,8 @@ class BrokerWorker implements Runnable {
                         pack._offset = size;
                         pack._ack = true;
                         out.writeObject(pack);
-                        System.out.println("Broker send a batch of List<Record> with size = "+ subList.size());
+                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+                                +" from partition " + partitionNum);
                         return true;
 
                     } else {            //If incoming offset == queue.size(), reply with EOS package instead of C2BData
