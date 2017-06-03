@@ -126,6 +126,7 @@ class ZooKeeperWorker implements Runnable {
 
                 default: {
                     System.out.println("Error. Unknown package type.");
+                    break;
                 }
 
                 case T2ZK: {
@@ -174,6 +175,7 @@ class ZooKeeperWorker implements Runnable {
 
                 case P2BUP: {
 
+                    //System.out.println("ZK received P2BUp");
                     P2BUp pack2 = (P2BUp) pack1;
                     String topic = pack2._topic;
                     List<PartitionEntry> partitionEntryList = ZooKeeper.topicTable.get(topic);
@@ -186,9 +188,11 @@ class ZooKeeperWorker implements Runnable {
                         String partitionNum = Integer.toString(partitionEntry._partitionNum);
                         partitionList.add(new String[] {brokerIp, brokerPort, partitionNum});
                     }
+                    //System.out.println("ZK prepared partitionList and sent back to Broker");
                     pack2._partitionList = partitionList;
                     pack2._ack = true;
                     out.writeObject(pack2);
+                    break;
                 }
 
                 case C2BUP: {
@@ -215,11 +219,13 @@ class ZooKeeperWorker implements Runnable {
                             offset = 0;
                             offsetMap.put(groupID, 0);
                         }
+                        //System.out.println("Offset sent back by ZK: offset = "+offset+" on partition " + i);
                         offsetList.add(new String[] {brokerIp, brokerPort, partitionNum, Integer.toString(offset)});
                     }
                     pack2._offsetList = offsetList;
                     pack2._ack = true;
                     out.writeObject(pack2);
+                    break;
                 }
 
                 case B2ZKOFFSET: {
@@ -242,7 +248,7 @@ class ZooKeeperWorker implements Runnable {
                             System.out.println("Error. No such consumer group on this topic with this partition number.");
                         }
                     }
-
+                    break;
                 }
 
 
