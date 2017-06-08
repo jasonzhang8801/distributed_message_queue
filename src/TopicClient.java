@@ -10,7 +10,7 @@ public class TopicClient {
 
     public static void main(String[] args) {
         if (args.length != 5) {
-            System.out.println("input format is {topic_name, partition_num, zookeeper/broker, ip, port}, please try again");
+            System.out.println("input format is {topic_name partition_num zookeeper/DSBS ip port}, please try again");
             return;
         }
 
