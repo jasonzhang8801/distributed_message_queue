@@ -196,6 +196,10 @@ class DSBSServerWorker implements Runnable {
                                     }
                                 }
                             }
+
+                            // send ACK
+                            revPkg._ack = true;
+                            out.writeObject(revPkg);
                             break;
                         }
                         case B2BINFO: {
@@ -443,7 +447,9 @@ class DSBSServerWorker implements Runnable {
         if (!DSBS.dataMap.containsKey(topic)) {
             // init dataMap
             ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
-            entryMap.put(partitionNum, new ArrayList<>());
+            // create synchronized list
+            // avoid race condition
+            entryMap.put(partitionNum, Collections.synchronizedList(new ArrayList<>()));
 
             DSBS.dataMap.put(topic, entryMap);
 
