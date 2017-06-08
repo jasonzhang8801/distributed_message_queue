@@ -15,7 +15,7 @@ public class TopicClient {
         }
 
         sendTopic(args[0], Integer.parseInt(args[1]), args[2].equals("zookeeper"), args[3], Integer.parseInt(args[4]));
-        System.out.println("Topic is Sent successfully, exit");
+        System.out.println("Topic is sent successfully, exit");
     }
 
     // send topic and partition to ZooKeeper/DSBS

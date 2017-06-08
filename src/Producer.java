@@ -105,9 +105,9 @@ public class Producer {
 
         // calculate throughput
         long end = System.currentTimeMillis();
-        System.out.println(start + " " + end);
-        long throughput = _bufferSize / (end - start);
-        System.out.println("Buffer Size = " + _bufferSize + " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + "/ms");
+        long throughput = _bufferSize / (end - start) * 1000;
+        System.out.println("\nProducer finished, the result is:");
+        System.out.println("Buffer Size = " + _bufferSize + " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + " record(s)/s");
     }
 
 
