@@ -5,10 +5,7 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -135,6 +132,7 @@ class BrokerWorker implements Runnable {
                 Broker.zkPort = pack2._zkPort;
                 pack2._ack = true;
                 out.writeObject(pack2);
+                System.out.println("Received ZK2BADD request from ZooKeeper. Broker is added to the Kafka cluster.");
 
             }
             else if (pack1._type == TYPE.ZK2BTOPIC) {
@@ -144,17 +142,18 @@ class BrokerWorker implements Runnable {
                 if (Broker.topicMap.containsKey(topic)) {
                     ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
                     if (!entryMap.containsKey(partitionEntry._partitionNum)) {
-                        entryMap.put(partitionEntry._partitionNum, new ArrayList<Record>());
+                        entryMap.put(partitionEntry._partitionNum, Collections.synchronizedList(new ArrayList<Record>()));
                     }
                     Broker.topicMap.put(topic, entryMap);
                 }
                 else {
                     ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
-                    entryMap.put(partitionEntry._partitionNum, new ArrayList<Record>());
+                    entryMap.put(partitionEntry._partitionNum, Collections.synchronizedList(new ArrayList<Record>()));
                     Broker.topicMap.put(topic, entryMap);
                 }
                 pack2._partitionEntry = null;
                 pack2._ack = true;
+                System.out.println("Received partition "+partitionEntry._partitionNum+" on topic "+topic+ " from ZooKeeper");
                 out.writeObject(pack2);
 
             }
@@ -246,7 +245,8 @@ class BrokerWorker implements Runnable {
                 try {
                     if (offset < size && offset + batchSize <= size) {
 
-                        List<Record> subList = new ArrayList<>(dataList.subList(offset, offset + batchSize));
+                        List<Record> subList = Collections.synchronizedList
+                                (new ArrayList<>(dataList.subList(offset, offset + batchSize)));
                         pack._data = subList;
                         pack._offset = offset + batchSize;
                         pack._ack = true;
@@ -257,7 +257,11 @@ class BrokerWorker implements Runnable {
 
                     } else if (offset < size && offset + batchSize > size) {
 
-                        List<Record> subList = new ArrayList<>(dataList.subList(offset, size));
+                        List<Record> subList = Collections.synchronizedList
+                                (new ArrayList<>(dataList.subList(offset, size)));
+
+
+
                         pack._data = subList;
                         pack._offset = size;
                         pack._ack = true;

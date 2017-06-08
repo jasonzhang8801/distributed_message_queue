@@ -77,7 +77,8 @@ public class ConsumerWorker implements Runnable {
             socket.close();
 
     		} catch (Exception e) {
-    			e.printStackTrace();
+    			//e.printStackTrace();
+				System.out.println();
     		}
 
     }
