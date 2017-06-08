@@ -15,7 +15,9 @@ public class ConsumerWorker implements Runnable {
     private int _groupID;
     private int _batchsize;
     public String[] partitionInfo;
-    
+
+
+
     
     ConsumerWorker(String threadName, String topic, int groupID, int batchsize, String[] partition) {
 	    	_threadName = threadName;
