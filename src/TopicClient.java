@@ -10,12 +10,12 @@ public class TopicClient {
 
     public static void main(String[] args) {
         if (args.length != 5) {
-            System.out.println("input format is {topic_name, partition_num, zookeeper/broker, ip, port}, please try again");
+            System.out.println("input format is {topic_name partition_num zookeeper/DSBS ip port}, please try again");
             return;
         }
 
         sendTopic(args[0], Integer.parseInt(args[1]), args[2].equals("zookeeper"), args[3], Integer.parseInt(args[4]));
-        System.out.println("Topic is Sent successfully, exit");
+        System.out.println("Topic is sent successfully, exit");
     }
 
     // send topic and partition to ZooKeeper/DSBS

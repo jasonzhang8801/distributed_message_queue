@@ -126,14 +126,16 @@ class ZooKeeperWorker implements Runnable {
 
                 default: {
                     System.out.println("Error. Unknown package type.");
+                    break;
                 }
 
                 case T2ZK: {
+                    boolean unique = false;
                     T2ZK pack2 = (T2ZK) pack1;
                     String topic = pack2._topic;
                     int numOfPart = pack2._partition;
                     if (ZooKeeper._brokerList.size() != 0) {
-                        assignTopic(topic, numOfPart, pack2);
+                        unique = assignTopic(topic, numOfPart, pack2);
                         out.writeObject(pack2);
                     }
                     else {
@@ -144,27 +146,30 @@ class ZooKeeperWorker implements Runnable {
                         pack2._topic = null;
                         out.writeObject(pack2);
                     }
+                    if (unique) {
 
-                    List<PartitionEntry> partitionEntryList = ZooKeeper.topicTable.get(topic);
+                        List<PartitionEntry> partitionEntryList = ZooKeeper.topicTable.get(topic);
 
-                    for (int i = 0; i < partitionEntryList.size(); i++) {
-                        PartitionEntry partitionEntry = partitionEntryList.get(i);
-                        int brokerID = partitionEntry._brokerID;
-                        String brokerIp = ZooKeeper._brokerList.get(brokerID)[0];
-                        int brokerPort = Integer.parseInt(ZooKeeper._brokerList.get(brokerID)[1]);
+                        for (int i = 0; i < partitionEntryList.size(); i++) {
+                            PartitionEntry partitionEntry = partitionEntryList.get(i);
+                            int brokerID = partitionEntry._brokerID;
+                            String brokerIp = ZooKeeper._brokerList.get(brokerID)[0];
+                            int brokerPort = Integer.parseInt(ZooKeeper._brokerList.get(brokerID)[1]);
 
-                        try (Socket fwdSock = new Socket(brokerIp, brokerPort)) {
-                            ZK2BTopic outPack = new ZK2BTopic(TYPE.ZK2BTOPIC, topic, partitionEntry);
-                            ObjectOutputStream fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
-                            ObjectInputStream fwdIn = new ObjectInputStream(fwdSock.getInputStream());
-                            fwdOut.writeObject(outPack);
+                            try (Socket fwdSock = new Socket(brokerIp, brokerPort)) {
+                                ZK2BTopic outPack = new ZK2BTopic(TYPE.ZK2BTOPIC, topic, partitionEntry);
+                                ObjectOutputStream fwdOut = new ObjectOutputStream(fwdSock.getOutputStream());
+                                ObjectInputStream fwdIn = new ObjectInputStream(fwdSock.getInputStream());
+                                fwdOut.writeObject(outPack);
 
-                            ZK2BTopic inPack;
-                            inPack = (ZK2BTopic) fwdIn.readObject();
+                                ZK2BTopic inPack;
+                                inPack = (ZK2BTopic) fwdIn.readObject();
 
-                            if (inPack != null && inPack._ack) {
-                                System.out.println("Topic " + topic + " is registered on broker " + brokerIp + ":" + brokerPort+".");
+                                if (inPack != null && inPack._ack) {
+                                    System.out.println("Topic " + topic + " is registered on broker " + brokerIp + ":" + brokerPort + ".");
+                                }
                             }
+
                         }
 
                     }
@@ -174,6 +179,7 @@ class ZooKeeperWorker implements Runnable {
 
                 case P2BUP: {
 
+                    //System.out.println("ZK received P2BUp");
                     P2BUp pack2 = (P2BUp) pack1;
                     String topic = pack2._topic;
                     List<PartitionEntry> partitionEntryList = ZooKeeper.topicTable.get(topic);
@@ -186,9 +192,11 @@ class ZooKeeperWorker implements Runnable {
                         String partitionNum = Integer.toString(partitionEntry._partitionNum);
                         partitionList.add(new String[] {brokerIp, brokerPort, partitionNum});
                     }
+                    //System.out.println("ZK prepared partitionList and sent back to Broker");
                     pack2._partitionList = partitionList;
                     pack2._ack = true;
                     out.writeObject(pack2);
+                    break;
                 }
 
                 case C2BUP: {
@@ -215,11 +223,13 @@ class ZooKeeperWorker implements Runnable {
                             offset = 0;
                             offsetMap.put(groupID, 0);
                         }
+                        //System.out.println("Offset sent back by ZK: offset = "+offset+" on partition " + i);
                         offsetList.add(new String[] {brokerIp, brokerPort, partitionNum, Integer.toString(offset)});
                     }
                     pack2._offsetList = offsetList;
                     pack2._ack = true;
                     out.writeObject(pack2);
+                    break;
                 }
 
                 case B2ZKOFFSET: {
@@ -242,7 +252,7 @@ class ZooKeeperWorker implements Runnable {
                             System.out.println("Error. No such consumer group on this topic with this partition number.");
                         }
                     }
-
+                    break;
                 }
 
 
@@ -252,12 +262,13 @@ class ZooKeeperWorker implements Runnable {
         }
     }
 
-    public static void assignTopic(String topic, int numOfPart, T2ZK pack) {
+    public static boolean assignTopic(String topic, int numOfPart, T2ZK pack) {
         if (ZooKeeper.topicTable.containsKey(topic)) {
             System.out.println("Error, duplicate topic. Please register another topic");
             pack._partition = -1;
             pack._topic = null;
             pack._ack = false;
+            return false;
         }
         else {
             List<String[]> brokerList = ZooKeeper._brokerList;
@@ -274,6 +285,7 @@ class ZooKeeperWorker implements Runnable {
             pack._partition = -1;
             pack._topic = null;
             pack._ack = true;
+            return true;
         }
     }
 

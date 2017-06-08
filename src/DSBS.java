@@ -174,7 +174,7 @@ class DSBSServerWorker implements Runnable {
                                 // connect remote broker
                                 try (Socket socket = new Socket(ipAddr, portNum)) {
                                     try (ObjectOutputStream objOut = new ObjectOutputStream(socket.getOutputStream());
-                                        ObjectInputStream objIn = new ObjectInputStream(socket.getInputStream())) {
+                                         ObjectInputStream objIn = new ObjectInputStream(socket.getInputStream())) {
 
                                         // construct send package
                                         B2BInfo sendPkg_B2BInfo = new B2BInfo(TYPE.B2BINFO, DSBS.infoMap);
@@ -596,7 +596,7 @@ class DSBSClient {
 
                             try (Socket socket = new Socket(remoteIpAddr, remotePortNum)) {
                                 try (ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-                                    ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+                                     ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 
                                     // construct the B2BAdd package
                                     B2BAdd sendPkg = new B2BAdd(TYPE.B2BADD, DSBS.brokerList);

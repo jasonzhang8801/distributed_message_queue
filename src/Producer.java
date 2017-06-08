@@ -43,10 +43,11 @@ public class Producer {
     // connect to broker and get partition list
     private static void connectBroker() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Please input ZooKeeper/DSBS IP and port:");
+        System.out.println("Please input Broker/DSBS IP and port:");
         String IP = scanner.next();
         int port = scanner.nextInt();
 
+        System.out.println("P2BUP...");
         try (Socket socket = new Socket(IP, port)) {
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
@@ -58,6 +59,7 @@ public class Producer {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
+        System.out.println("P2BUP finish");
     }
 
     // produce data
@@ -74,6 +76,7 @@ public class Producer {
         for (String[] a_destList : _destList) {
             _workerList.add(new ProducerWorker(a_destList[0], Integer.parseInt(a_destList[1]), Integer.parseInt(a_destList[2])));
         }
+        System.out.println("P2BData...");
         List<Thread> threadList = new ArrayList<>();
         for (int i = 0; i < partition; i++) {
             threadList.add(new Thread(_workerList.get(i)));
@@ -98,12 +101,13 @@ public class Producer {
                 e.printStackTrace();
             }
         }
+        System.out.println("P2BData finish");
 
         // calculate throughput
         long end = System.currentTimeMillis();
-        System.out.println(start + " " + end);
-        long throughput = _bufferSize / (end - start);
-        System.out.println("Buffer Size = " + _bufferSize + " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + "/ms");
+        long throughput = _bufferSize / (end - start) * 1000;
+        System.out.println("\nProducer finished, the result is:");
+        System.out.println("Buffer Size = " + _bufferSize + " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + " record(s)/s");
     }
 
 
@@ -125,6 +129,7 @@ public class Producer {
 
         @Override
         public void run() {
+            System.out.println("ProducerWorker" + _partitionNum + "...");
             int count = 0;
             try (ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream());
                  ObjectInputStream in = new ObjectInputStream(_socket.getInputStream())) {
@@ -151,6 +156,7 @@ public class Producer {
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
+            System.out.println("ProducerWorker" + _partitionNum + "finish");
         }
     }
 }
