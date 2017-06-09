@@ -1,29 +1,29 @@
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.*;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
 
 public class ConsumerWorker implements Runnable {
-	private static final int RECORD_CNT_LMT = 100000;
+	public static final int RECORD_CNT_LMT = 10000;
 
     private Thread _thread;
     private String _threadName;
     private String _topic;
     private int _groupID;
     private int _batchsize;
+    private int _ID;
     public String[] partitionInfo;
 
+	// yue
+	int _recordcount;
 
 
-    
-    ConsumerWorker(String threadName, String topic, int groupID, int batchsize, String[] partition) {
+    ConsumerWorker(String threadName, String topic, int groupID, int batchsize, String[] partition, int ID) {
 	    	_threadName = threadName;
 	    	_topic = topic;
 	    	_batchsize = batchsize;
 	    	partitionInfo = partition;
+	    	_ID = ID;
 	    	System.out.println("Worker: " + threadName + " created");
     }
     
@@ -38,6 +38,10 @@ public class ConsumerWorker implements Runnable {
 	    		System.out.println(_threadName + " started");
 	    	}
     }
+
+    public void join() throws InterruptedException {
+    	_thread.join();
+	}
     
     private void consume() {
     		if (partitionInfo.length != 4) {
@@ -61,13 +65,30 @@ public class ConsumerWorker implements Runnable {
 
 
             System.out.println("initial consumption request package sent");
-			int recordcount = 0;
+
+			// yue
+			Package p = null;
+			while (true) {
+				p = (Package)inStream.readObject();
+				datapackage = (C2BData)p;
+
+				if (datapackage._ack == true) {
+					Consumer.startTimes[_ID] = System.currentTimeMillis();
+					outStream.writeObject(datapackage);
+					System.out.println("start time" + _ID + " " + Consumer.startTimes[_ID]);
+					break;
+				}
+
+				outStream.writeObject(datapackage);
+			}
+
             while (true) {
-				Package p = (Package)inStream.readObject();
+				p = (Package)inStream.readObject();
+
                 datapackage = (C2BData)p;
-                printDataBatch(datapackage);
-				recordcount += datapackage._data.size();
-				if (recordcount >= RECORD_CNT_LMT) break;
+//                printDataBatch(datapackage);
+				_recordcount += datapackage._data.size();
+				if (_recordcount >= RECORD_CNT_LMT) break;
 				outStream.writeObject(datapackage); // hotfix
 
             }
@@ -78,9 +99,12 @@ public class ConsumerWorker implements Runnable {
 			inStream.close();
             socket.close();
 
+            // yue
+			Consumer.endTimes[_ID] = System.currentTimeMillis();
+			System.out.println("end time" + _ID + " " + Consumer.endTimes[_ID]);
     		} catch (Exception e) {
-    			//e.printStackTrace();
-				System.out.println();
+    			e.printStackTrace();
+				//System.out.println();
     		}
 
     }

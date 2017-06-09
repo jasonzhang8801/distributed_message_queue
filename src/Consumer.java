@@ -18,8 +18,13 @@ import java.util.*;
 import java.io.*;
 
 public class Consumer {
+
+
     public static final int BATCH_SIZE = 32;
     public static final int GROUP_ID = 0;
+
+    public static long[] startTimes;
+    public static long[] endTimes;
 
     public static void main(String[] args) throws UnknownHostException, IOException {
         if (args.length != 3) {
@@ -51,24 +56,53 @@ public class Consumer {
             socket.close();
             //assign consumer workers to their tasks according to
             //the returned partition info
+ 
+            int partitionNum = offsetList.size();
+            ConsumerWorker[] workers = new ConsumerWorker[partitionNum];
+            startTimes = new long[partitionNum];
+            endTimes = new long[partitionNum];
 
-            ConsumerWorker[] workers = new ConsumerWorker[offsetList.size()];
             //initialize CONSUMER_COUNT number of consumers
             for (int i=0; i<workers.length ; i++) {
                 workers[i] = new
                         ConsumerWorker(
-                        "worker" + i, topic, GROUP_ID, BATCH_SIZE, offsetList.get(i)
-                );
+                        "worker" + i, topic, GROUP_ID, BATCH_SIZE, offsetList.get(i), i);
             }
             //start all consumer worker threads to start consuming data
             for (int i=0; i<workers.length ; i++) {
                 workers[i].start();
             }
 
+            for (int i=0; i<workers.length ; i++) {
+                workers[i].join();
+            }
+
+            long startTime = findStartTime(startTimes);
+            long endTime = findEndTime(endTimes);
+            long throughput = ConsumerWorker.RECORD_CNT_LMT * partitionNum / (endTime - startTime) * 1000;
+
+            System.out.println("throughput =" + throughput + "/s");
+
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
+    }
+
+    private static long findStartTime(long[] startTimes) {
+        long result = Long.MAX_VALUE;
+        for (long t : startTimes) {
+            result = Math.min(result, t);
+        }
+        return result;
+    }
+
+    private static long findEndTime(long[] endTimes) {
+        long result = Long.MIN_VALUE;
+        for (long t : startTimes) {
+            result = Math.max(result, t);
+        }
+        return result;
     }
 }

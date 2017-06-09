@@ -185,7 +185,9 @@ class BrokerWorker implements Runnable {
                 int prevOffset = pack2._offset;     //record the previous offset
 
 
-                processC2BData(pack2, out);       //prepare data according to the incoming offset with C2BData pack
+                processC2BData(pack2, out);
+
+                       //prepare data according to the incoming offset with C2BData pack
                 // and send it back to consumer.
 
                 Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
@@ -202,10 +204,11 @@ class BrokerWorker implements Runnable {
                         fwdOut.writeObject(pack4);          //Commit previous offset to ZooKeeper
 
                         prevOffset = ((C2BData) pack3)._offset;
-                        if (!processC2BData((C2BData)pack3, out)) {
-
-                            break;
-                        }
+                        processC2BData((C2BData)pack3, out);
+//                        if (!processC2BData((C2BData)pack3, out)) {
+//
+//                            //break;
+//                        }
                     }
                     else if (pack3._type == TYPE.EOS) {
 
@@ -226,7 +229,7 @@ class BrokerWorker implements Runnable {
         }
     }
 
-    public static boolean processC2BData(C2BData pack, ObjectOutputStream out) {
+    public static void processC2BData(C2BData pack, ObjectOutputStream out) {
 
         String topic = pack._topic;
         int partitionNum = pack._partitionNum;
@@ -240,26 +243,24 @@ class BrokerWorker implements Runnable {
             if (entryMap.containsKey(partitionNum)) {
                 List<Record> dataList = entryMap.get(partitionNum);
                 int size = dataList.size();
-                //System.out.println("partition size = " + size);
-                //System.out.println("offset = " + offset);
-                //System.out.println("batchsize = " + batchSize);
+//                System.out.println("partition size = " + size);
+//                System.out.println("offset = " + offset);
+//                System.out.println("batchsize = " + batchSize);
                 try {
                     if (offset < size && offset + batchSize <= size) {
 
-                        List<Record> subList = Collections.synchronizedList
-                                (new ArrayList<>(dataList.subList(offset, offset + batchSize)));
+                        List<Record> subList = new ArrayList<>(dataList.subList(offset, offset + batchSize));
                         pack._data = subList;
                         pack._offset = offset + batchSize;
                         pack._ack = true;
                         out.writeObject(pack);
-                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
-                                +" from partition " + partitionNum);
-                        return true;
+//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+//                                +" from partition " + partitionNum);
+                        //return true;
 
                     } else if (offset < size && offset + batchSize > size) {
 
-                        List<Record> subList = Collections.synchronizedList
-                                (new ArrayList<>(dataList.subList(offset, size)));
+                        List<Record> subList = new ArrayList<>(dataList.subList(offset, size));
 
 
 
@@ -267,31 +268,32 @@ class BrokerWorker implements Runnable {
                         pack._offset = size;
                         pack._ack = true;
                         out.writeObject(pack);
-                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
-                                +" from partition " + partitionNum);
-                        return true;
+//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+//                                +" from partition " + partitionNum);
+                        //return true;
 
                     } else {            //If incoming offset == queue.size(), reply with EOS package instead of C2BData
                         //and close connection
 
-//                        out.writeObject(pack);
-//                        EOS packEOS = new EOS(TYPE.EOS);
-//                        out.writeObject(packEOS);
+                        pack._data = new ArrayList<>();
+                        pack._offset = size;
+                        pack._ack = false;
+                        out.writeObject(pack);
                         System.out.println("End of partition...");
-                        return false;
+                        //return true;
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             } else {
                 System.out.println("Broker doesn't own the partition on topic: " + topic);
-                return false;
+                //return false;
             }
         } else {
             System.out.println("Broker doesn't have any data on topic: " + topic);
-            return false;
+            //return false;
         }
-        return false;
+        //return false;
     }
 
 
