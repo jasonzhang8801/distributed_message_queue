@@ -79,7 +79,9 @@ public class Consumer {
 
             long startTime = findStartTime(startTimes);
             long endTime = findEndTime(endTimes);
-            long throughput = ConsumerWorker.RECORD_CNT_LMT * partitionNum / (endTime - startTime) * 1000;
+            long throughput = (ConsumerWorker.RECORD_CNT_LMT * partitionNum * 1000)/ (endTime - startTime);
+            System.out.println("start = "+ startTime);
+            System.out.println("end = "+ endTime);
 
             System.out.println("throughput =" + throughput + "/s");
 
@@ -90,17 +92,17 @@ public class Consumer {
 
     }
 
-    private static long findStartTime(long[] startTimes) {
+    private static long findStartTime(long[] inputTime) {
         long result = Long.MAX_VALUE;
-        for (long t : startTimes) {
+        for (long t : inputTime) {
             result = Math.min(result, t);
         }
         return result;
     }
 
-    private static long findEndTime(long[] endTimes) {
+    private static long findEndTime(long[] inputTime) {
         long result = Long.MIN_VALUE;
-        for (long t : startTimes) {
+        for (long t : inputTime) {
             result = Math.max(result, t);
         }
         return result;
