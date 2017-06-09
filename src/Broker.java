@@ -205,10 +205,7 @@ class BrokerWorker implements Runnable {
 
                         prevOffset = ((C2BData) pack3)._offset;
                         processC2BData((C2BData)pack3, out);
-//                        if (!processC2BData((C2BData)pack3, out)) {
 //
-//                            //break;
-//                        }
                     }
                     else if (pack3._type == TYPE.EOS) {
 
@@ -246,31 +243,37 @@ class BrokerWorker implements Runnable {
 //                System.out.println("partition size = " + size);
 //                System.out.println("offset = " + offset);
 //                System.out.println("batchsize = " + batchSize);
+                int count = 0;
                 try {
                     if (offset < size && offset + batchSize <= size) {
 
-                        List<Record> subList = new ArrayList<>(dataList.subList(offset, offset + batchSize));
+                        List<Record> copy = new ArrayList<>(dataList);
+                        List<Record> subList = new ArrayList<>(copy.subList(offset, offset + batchSize));
                         pack._data = subList;
                         pack._offset = offset + batchSize;
                         pack._ack = true;
                         out.writeObject(pack);
-//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
-//                                +" from partition " + partitionNum);
+                        copy = null;
+                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+                                +" from partition " + partitionNum);
                         //return true;
+                        count++;
 
                     } else if (offset < size && offset + batchSize > size) {
 
-                        List<Record> subList = new ArrayList<>(dataList.subList(offset, size));
-
+                        List<Record> copy = new ArrayList<>(dataList);
+                        List<Record> subList = new ArrayList<>(copy.subList(offset, size));
+                        copy = null;
 
 
                         pack._data = subList;
                         pack._offset = size;
                         pack._ack = true;
                         out.writeObject(pack);
-//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
-//                                +" from partition " + partitionNum);
+                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+                                +" from partition " + partitionNum);
                         //return true;
+                        count++;
 
                     } else {            //If incoming offset == queue.size(), reply with EOS package instead of C2BData
                         //and close connection
@@ -281,6 +284,10 @@ class BrokerWorker implements Runnable {
                         out.writeObject(pack);
                         System.out.println("End of partition...");
                         //return true;
+                    }
+                    if (count >= 50) {
+                        System.out.println("Broker sent 50 packages");
+                        count = 0;
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
