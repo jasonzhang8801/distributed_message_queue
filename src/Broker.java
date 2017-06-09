@@ -185,7 +185,9 @@ class BrokerWorker implements Runnable {
                 int prevOffset = pack2._offset;     //record the previous offset
 
 
-                processC2BData(pack2, out);       //prepare data according to the incoming offset with C2BData pack
+                processC2BData(pack2, out);
+
+                       //prepare data according to the incoming offset with C2BData pack
                 // and send it back to consumer.
 
                 Socket fwdSock = new Socket(Broker.zkIp, Broker.zkPort);
@@ -246,20 +248,18 @@ class BrokerWorker implements Runnable {
                 try {
                     if (offset < size && offset + batchSize <= size) {
 
-                        List<Record> subList = Collections.synchronizedList
-                                (new ArrayList<>(dataList.subList(offset, offset + batchSize)));
+                        List<Record> subList = new ArrayList<>(dataList.subList(offset, offset + batchSize));
                         pack._data = subList;
                         pack._offset = offset + batchSize;
                         pack._ack = true;
                         out.writeObject(pack);
-                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
-                                +" from partition " + partitionNum);
+//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+//                                +" from partition " + partitionNum);
                         return true;
 
                     } else if (offset < size && offset + batchSize > size) {
 
-                        List<Record> subList = Collections.synchronizedList
-                                (new ArrayList<>(dataList.subList(offset, size)));
+                        List<Record> subList = new ArrayList<>(dataList.subList(offset, size));
 
 
 
@@ -267,16 +267,17 @@ class BrokerWorker implements Runnable {
                         pack._offset = size;
                         pack._ack = true;
                         out.writeObject(pack);
-                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
-                                +" from partition " + partitionNum);
+//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+//                                +" from partition " + partitionNum);
                         return true;
 
                     } else {            //If incoming offset == queue.size(), reply with EOS package instead of C2BData
                         //and close connection
 
-//                        out.writeObject(pack);
-//                        EOS packEOS = new EOS(TYPE.EOS);
-//                        out.writeObject(packEOS);
+                        pack._data = new ArrayList<>();
+                        pack._offset = size;
+                        pack._ack = false;
+                        out.writeObject(pack);
                         System.out.println("End of partition...");
                         return false;
                     }
