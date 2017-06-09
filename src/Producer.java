@@ -10,16 +10,16 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  */
 
 public class Producer {
-    private static String _topic;
-    private static int _bufferSize = 100000;
+    private static String _topic = "abc";
+    private static int _bufferSize = 31000;
     private static int _batchSize = 20;
-    private static int _recordSize = 4;
+    private static int _recordSize = 8;
     private static List<String[]> _destList;        // {partitionIP, partitionPort, partitionNum}
     private static List<ProducerWorker> _workerList = new ArrayList<>();
     private static volatile boolean _finish;
 
     public static void main(String[] args) {
-        configure();
+        //configure();
         connectBroker();
         produce();
     }
@@ -105,7 +105,9 @@ public class Producer {
 
         // calculate throughput
         long end = System.currentTimeMillis();
-        long throughput = _bufferSize / (end - start) * 1000;
+        long throughput = (_bufferSize * 1000) / (end - start);
+        System.out.println("start = "+ start);
+        System.out.println("end = "+ end);
         System.out.println("\nProducer finished, the result is:");
         System.out.println("Buffer Size = " + _bufferSize + " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + " record(s)/s");
     }
