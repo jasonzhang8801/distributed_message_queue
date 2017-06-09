@@ -364,6 +364,8 @@ class DSBSServerWorker implements Runnable {
 
                             Package revPkg1;
                             while ((revPkg1 = (Package) in.readObject()) != null) {
+                                System.out.println("Server: received package with command \"C2BDATA\"");
+
                                 if (revPkg1._type == TYPE.EOS) {
                                     System.out.println("Server: reached the end of data stream");
                                     break;
@@ -419,6 +421,9 @@ class DSBSServerWorker implements Runnable {
         int batchSize = pkg._batchSize;
         int offset = pkg._offset; // offset = -1
 
+        // TEST ONLY
+        System.out.println("Received offset: " + offset);
+
         // check the batch size
         if (batchSize <= 0) {
             System.out.println("Error: invalid batch size");
@@ -439,11 +444,16 @@ class DSBSServerWorker implements Runnable {
                     partitionEntry._offsetMap.put(groupId, 0);
                 }
                 offset = partitionEntry._offsetMap.get(groupId);
+
+                // TEST ONLY
+                System.out.println("Updated offset: " + offset);
+
+                break;
             }
         }
 
         // check if topic exists
-        int newOffset = -1;
+        int newOffset;
         if (!DSBS.dataMap.containsKey(topic)) {
             // init dataMap
             ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
@@ -454,28 +464,36 @@ class DSBSServerWorker implements Runnable {
             DSBS.dataMap.put(topic, entryMap);
 
             // send NACK
+            newOffset = offset;
+            pkg._offset = newOffset;
+            pkg._ack = false;
+
             try {
                 out.writeObject(pkg);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println("Server: empty records");
+            System.out.println("Server: create new queue for partition");
+            System.out.println("Server: sent NACK due to empty queue");
+
+            // no need to commit new offset
 
         } else {
             // check if partition exists
             if (!DSBS.dataMap.get(topic).containsKey(partitionNum)) {
                 System.out.println("System error: no valid partition number");
+                return;
             }
 
             // partition for given topic
             List<Record> listOfRecord = DSBS.dataMap.get(topic).get(partitionNum);
             int size = listOfRecord.size();
 
-            // check if the offset is valid
-            if (offset < 0 || offset > size) {
-                System.out.println("Error: invalid offset");
-                return;
-            }
+//            // check if the offset is valid
+//            if (offset < 0 || offset > size) {
+//                System.out.println("Error: invalid offset");
+//                return;
+//            }
 
             // check if data stream ends
 //            if (offset == size) {
@@ -497,14 +515,33 @@ class DSBSServerWorker implements Runnable {
 //            }
 
             // assign the list of record with required batch size
-            if (offset + batchSize <= size) {
+            if (offset < size && offset + batchSize <= size) {
                 pkg._data = new ArrayList<>(listOfRecord.subList(offset, offset + batchSize));
                 newOffset = offset + batchSize;
 
 
-            } else if (offset + batchSize > size) {
+            } else if (offset < size && offset + batchSize > size) {
                 pkg._data = new ArrayList<>(listOfRecord.subList(offset, size));
                 newOffset = size;
+            } else {
+                // send NACK back
+                newOffset = size;
+                pkg._offset = newOffset;
+                pkg._ack = false;
+
+                try {
+                    out.writeObject(pkg);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("Server: sent NACK due to empty queue");
+
+                // commit the offset
+                if (offsetMap != null) {
+                    offsetMap.put(groupId, newOffset);
+                }
+
+                return;
             }
 
             // send data back
@@ -765,7 +802,7 @@ abstract class DSBSUtility {
                             pattern = Pattern.compile(",\\s*(\\d{4,5}$)");
                             matcher = pattern.matcher(content);
 
-                            if (matcher.find() && (Integer.parseInt(matcher.group(1)) >= 1024 && Integer.parseInt(matcher.group(1)) <= 49151)) {
+                            if (matcher.find() && (Integer.parseInt(matcher.group(1)) >= 1024 && Integer.parseInt(matcher.group(1)) <= 65535)) {
                                 remotePortNum = matcher.group(1);
                             } else {
                                 System.out.println("Error: invalid host port");
