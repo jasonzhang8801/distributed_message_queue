@@ -384,8 +384,17 @@ class DSBSServerWorker implements Runnable {
 
                             DSBSC2BDataHandler(pkg, out);
 
+//                            // TEST ONLY
+//                            long inTime = 0;
+//                            long outTime = 0;
+
                             Package revPkg1;
                             while ((revPkg1 = (Package) in.readObject()) != null) {
+
+//                                // TEST ONLY
+//                                inTime = System.currentTimeMillis();
+//                                System.out.println("TEST: network travel time " + (inTime - outTime) + " ms");
+
                                 System.out.println("Server: received package with command \"C2BDATA\"");
 
                                 if (revPkg1._type == TYPE.EOS) {
@@ -394,6 +403,9 @@ class DSBSServerWorker implements Runnable {
                                 }
 
                                 DSBSC2BDataHandler(pkg, out);
+
+//                                outTime = System.currentTimeMillis();
+//                                System.out.println("TEST: data processing time " + (outTime - inTime) + " ms");
                             }
 
                             break;
@@ -474,35 +486,39 @@ class DSBSServerWorker implements Runnable {
             }
         }
 
+//        // check if topic exists
+//        int newOffset;
+//        if (!DSBS.dataMap.containsKey(topic)) {
+//            // init dataMap
+//            ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
+//            // create synchronized list
+//            // avoid race condition
+////            entryMap.put(partitionNum, Collections.synchronizedList(new ArrayList<>()));
+////            entryMap.put(partitionNum, new CopyOnWriteArrayList<>());
+//            entryMap.put(partitionNum, new ArrayList<>());
+//
+//            DSBS.dataMap.put(topic, entryMap);
+//
+//            // send NACK
+//            newOffset = offset;
+//            pkg._offset = newOffset;
+//            pkg._ack = false;
+//
+//            try {
+//                out.writeObject(pkg);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            System.out.println("Server: create new queue for partition");
+//            System.out.println("Server: sent NACK due to empty queue");
+//
+//            // no need to commit new offset
+//
+//        }
+
         // check if topic exists
         int newOffset;
-        if (!DSBS.dataMap.containsKey(topic)) {
-            // init dataMap
-            ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
-            // create synchronized list
-            // avoid race condition
-//            entryMap.put(partitionNum, Collections.synchronizedList(new ArrayList<>()));
-//            entryMap.put(partitionNum, new CopyOnWriteArrayList<>());
-            entryMap.put(partitionNum, new ArrayList<>());
-
-            DSBS.dataMap.put(topic, entryMap);
-
-            // send NACK
-            newOffset = offset;
-            pkg._offset = newOffset;
-            pkg._ack = false;
-
-            try {
-                out.writeObject(pkg);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            System.out.println("Server: create new queue for partition");
-            System.out.println("Server: sent NACK due to empty queue");
-
-            // no need to commit new offset
-
-        } else {
+        if (DSBS.dataMap.containsKey(topic)){
             // check if partition exists
             if (!DSBS.dataMap.get(topic).containsKey(partitionNum)) {
                 System.out.println("System error: no valid partition number");
@@ -557,6 +573,9 @@ class DSBSServerWorker implements Runnable {
                 e.printStackTrace();
             }
             System.out.println("Server: sent a list of record back to consumer with topic \"" + topic + "\"");
+        } else {
+            System.out.println("System error: no valid topic");
+            return;
         }
 
         // commit the offset
