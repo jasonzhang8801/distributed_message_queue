@@ -38,6 +38,10 @@ public class ConsumerWorker implements Runnable {
 	    		System.out.println(_threadName + " started");
 	    	}
     }
+
+    public void join() throws InterruptedException {
+    	_thread.join();
+	}
     
     private void consume() {
     		if (partitionInfo.length != 4) {
@@ -71,6 +75,7 @@ public class ConsumerWorker implements Runnable {
 				if (datapackage._ack == true) {
 					Consumer.startTimes[_ID] = System.currentTimeMillis();
 					outStream.writeObject(datapackage);
+					System.out.println("start time" + _ID + " " + Consumer.startTimes[_ID]);
 					break;
 				}
 
@@ -96,9 +101,10 @@ public class ConsumerWorker implements Runnable {
 
             // yue
 			Consumer.endTimes[_ID] = System.currentTimeMillis();
+			System.out.println("end time" + _ID + " " + Consumer.endTimes[_ID]);
     		} catch (Exception e) {
-    			//e.printStackTrace();
-				System.out.println();
+    			e.printStackTrace();
+				//System.out.println();
     		}
 
     }

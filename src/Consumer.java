@@ -73,6 +73,9 @@ public class Consumer {
                 workers[i].start();
             }
 
+            for (int i=0; i<workers.length ; i++) {
+                workers[i].join();
+            }
 
             long startTime = findStartTime(startTimes);
             long endTime = findEndTime(endTimes);
