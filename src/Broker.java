@@ -212,8 +212,10 @@ class BrokerWorker implements Runnable {
                         prevOffset = ((C2BData) pack3)._offset;
                         processC2BData((C2BData)pack3, out);
 
+
                         outTime = System.currentTimeMillis();
                         System.out.println("Time to process package: " + (outTime-inTime) + " ms");
+
 //
                     }
                     else if (pack3._type == TYPE.EOS) {
@@ -253,8 +255,10 @@ class BrokerWorker implements Runnable {
 //                System.out.println("offset = " + offset);
 //                System.out.println("batchsize = " + batchSize);
 
+
                 try {
                     if (offset < size && offset + batchSize <= size) {
+
 
 
                         List<Record> copy = new ArrayList<>(dataList);
@@ -264,12 +268,17 @@ class BrokerWorker implements Runnable {
                         pack._ack = true;
                         out.writeObject(pack);
                         copy = null;
+
 //                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
 //                                +" from partition " + partitionNum);
+
                         //return true;
 
 
+
+
                     } else if (offset < size && offset + batchSize > size) {
+
 
                         List<Record> copy = new ArrayList<>(dataList);
                         List<Record> subList = new ArrayList<>(copy.subList(offset, size));
@@ -280,9 +289,10 @@ class BrokerWorker implements Runnable {
                         pack._offset = size;
                         pack._ack = true;
                         out.writeObject(pack);
-//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
-//                                +" from partition " + partitionNum);
+                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+                                +" from partition " + partitionNum);
                         //return true;
+
 
 
                     } else {            //If incoming offset == queue.size(), reply with EOS package instead of C2BData
