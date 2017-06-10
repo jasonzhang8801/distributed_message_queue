@@ -197,24 +197,22 @@ class BrokerWorker implements Runnable {
 
 
                 Package pack3;
-                long inTime=0;
-                long outTime=0;
-                while ((pack3 = (Package) in.readObject()) != null) {
-                    //pack3 = (Package) in.readObject();
+                long inTime = 0;
+                long outTime = 0;
+                while (true) {
+                    pack3 = (Package) in.readObject();
                     inTime = System.currentTimeMillis();
-                    System.out.println("Network travel time: " + (inTime - outTime) + " ms");
+                    //System.out.println("Network travel time: " + (inTime - outTime) + " ms");
                     if (pack3._type == TYPE.C2BDATA) {
-                        pack3 = (C2BData) pack3;
+                        C2BData pack5 = (C2BData) pack3;
                         B2ZKOffset pack4 = new B2ZKOffset(TYPE.B2ZKOFFSET, topic, groupID, partitionNum, prevOffset);
-
                         fwdOut.writeObject(pack4);          //Commit previous offset to ZooKeeper
-
-                        prevOffset = ((C2BData) pack3)._offset;
-                        processC2BData((C2BData)pack3, out);
+                        prevOffset = pack5._offset;
+                        processC2BData(pack5, out);
 
 
                         outTime = System.currentTimeMillis();
-                        System.out.println("Time to process package: " + (outTime-inTime) + " ms");
+                        //System.out.println("Time to process package: " + (outTime-inTime) + " ms");
 
 //
                     }
@@ -226,6 +224,11 @@ class BrokerWorker implements Runnable {
                     }
                 }
 
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
                 Set<Integer> keySet = entryMap.keySet();
                 for (int key : keySet) {
