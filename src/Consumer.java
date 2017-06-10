@@ -80,10 +80,11 @@ public class Consumer {
             long startTime = findStartTime(startTimes);
             long endTime = findEndTime(endTimes);
             long throughput = (ConsumerWorker.RECORD_CNT_LMT * partitionNum * 1000)/ (endTime - startTime);
-            System.out.println("start = "+ startTime);
-            System.out.println("end = "+ endTime);
+            System.out.println("start timestamp = "+ startTime);
+            System.out.println("end timestamp = "+ endTime);
 
-            System.out.println("throughput =" + throughput + "/s");
+            System.out.println("\nConsumer finished, the result is:");
+            System.out.println("Batch size = " + Consumer.BATCH_SIZE + " Throughput = " + throughput + " record/s");
 
 
         } catch (Exception e) {
