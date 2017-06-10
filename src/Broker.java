@@ -199,8 +199,8 @@ class BrokerWorker implements Runnable {
                 Package pack3;
                 long inTime=0;
                 long outTime=0;
-                while (true) {
-                    pack3 = (Package) in.readObject();
+                while ((pack3 = (Package) in.readObject()) != null) {
+                    //pack3 = (Package) in.readObject();
                     inTime = System.currentTimeMillis();
                     System.out.println("Network travel time: " + (inTime - outTime) + " ms");
                     if (pack3._type == TYPE.C2BDATA) {
@@ -225,7 +225,19 @@ class BrokerWorker implements Runnable {
                         break;
                     }
                 }
+
+                ConcurrentHashMap<Integer, List<Record>> entryMap = Broker.topicMap.get(topic);
+                Set<Integer> keySet = entryMap.keySet();
+                for (int key : keySet) {
+                    entryMap.get(key).clear();
+                }
+                System.out.println("All partitions on topic "+topic+" cleared");
+
+
             }
+
+
+
 
             in.close();
             out.close();
@@ -262,14 +274,13 @@ class BrokerWorker implements Runnable {
 
 
                         List<Record> copy = new ArrayList<>(dataList);
-                        List<Record> subList = new ArrayList<>(copy.subList(offset, offset + batchSize));
-                        pack._data = subList;
+                        pack._data = new ArrayList<>(copy.subList(offset, offset + batchSize));
                         pack._offset = offset + batchSize;
                         pack._ack = true;
-                        out.writeObject(pack);
+                        //out.writeObject(pack);
                         copy = null;
 
-//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+//                        System.out.println("Broker send a batch of List<Record> with size: "+ pack._data.size()
 //                                +" from partition " + partitionNum);
 
                         //return true;
@@ -281,17 +292,15 @@ class BrokerWorker implements Runnable {
 
 
                         List<Record> copy = new ArrayList<>(dataList);
-                        List<Record> subList = new ArrayList<>(copy.subList(offset, size));
-                        copy = null;
+                        pack._data = new ArrayList<>(copy.subList(offset, size));
 
-
-                        pack._data = subList;
                         pack._offset = size;
                         pack._ack = true;
-                        out.writeObject(pack);
-                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+                        //out.writeObject(pack);
+                        System.out.println("Broker send a batch of List<Record> with size: "+ pack._data.size()
                                 +" from partition " + partitionNum);
                         //return true;
+                        copy = null;
 
 
 
@@ -301,10 +310,11 @@ class BrokerWorker implements Runnable {
                         pack._data = new ArrayList<>();
                         pack._offset = size;
                         pack._ack = false;
-                        out.writeObject(pack);
+                        //out.writeObject(pack);
                         System.out.println("End of partition...");
                         //return true;
                     }
+                    out.writeObject(pack);
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -354,4 +364,5 @@ class BrokerP2BDataProcessor implements Runnable{
         }
     }
 }
+
 
