@@ -407,6 +407,13 @@ class DSBSServerWorker implements Runnable {
 //                                outTime = System.currentTimeMillis();
 //                                System.out.println("TEST: data processing time " + (outTime - inTime) + " ms");
                             }
+                            String topic = pkg._topic;
+                            ConcurrentHashMap<Integer, List<Record>> entryMap = DSBS.dataMap.get(topic);
+                            Set<Integer> keySet = entryMap.keySet();
+                            for (int key : keySet) {
+                                entryMap.get(key).clear();
+                            }
+                            System.out.println("All partitions on topic "+topic+" cleared");
 
                             break;
                         }
