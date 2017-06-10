@@ -178,6 +178,7 @@ class BrokerWorker implements Runnable {
 
             }
             else if (pack1._type == TYPE.C2BDATA) {
+
                 C2BData pack2 = (C2BData) pack1;
                 String topic = pack2._topic;
                 int partitionNum = pack2._partitionNum;
@@ -187,6 +188,7 @@ class BrokerWorker implements Runnable {
 
                 processC2BData(pack2, out);
 
+
                        //prepare data according to the incoming offset with C2BData pack
                 // and send it back to consumer.
 
@@ -195,8 +197,12 @@ class BrokerWorker implements Runnable {
 
 
                 Package pack3;
+                long inTime=0;
+                long outTime=0;
                 while (true) {
                     pack3 = (Package) in.readObject();
+                    inTime = System.currentTimeMillis();
+                    System.out.println("Network travel time: " + (inTime - outTime) + " ms");
                     if (pack3._type == TYPE.C2BDATA) {
                         pack3 = (C2BData) pack3;
                         B2ZKOffset pack4 = new B2ZKOffset(TYPE.B2ZKOFFSET, topic, groupID, partitionNum, prevOffset);
@@ -205,6 +211,9 @@ class BrokerWorker implements Runnable {
 
                         prevOffset = ((C2BData) pack3)._offset;
                         processC2BData((C2BData)pack3, out);
+
+                        outTime = System.currentTimeMillis();
+                        System.out.println("Time to process package: " + (outTime-inTime) + " ms");
 //
                     }
                     else if (pack3._type == TYPE.EOS) {
@@ -243,9 +252,10 @@ class BrokerWorker implements Runnable {
 //                System.out.println("partition size = " + size);
 //                System.out.println("offset = " + offset);
 //                System.out.println("batchsize = " + batchSize);
-                int count = 0;
+
                 try {
                     if (offset < size && offset + batchSize <= size) {
+
 
                         List<Record> copy = new ArrayList<>(dataList);
                         List<Record> subList = new ArrayList<>(copy.subList(offset, offset + batchSize));
@@ -254,10 +264,10 @@ class BrokerWorker implements Runnable {
                         pack._ack = true;
                         out.writeObject(pack);
                         copy = null;
-                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
-                                +" from partition " + partitionNum);
+//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+//                                +" from partition " + partitionNum);
                         //return true;
-                        count++;
+
 
                     } else if (offset < size && offset + batchSize > size) {
 
@@ -270,10 +280,10 @@ class BrokerWorker implements Runnable {
                         pack._offset = size;
                         pack._ack = true;
                         out.writeObject(pack);
-                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
-                                +" from partition " + partitionNum);
+//                        System.out.println("Broker send a batch of List<Record> with size: "+ subList.size()
+//                                +" from partition " + partitionNum);
                         //return true;
-                        count++;
+
 
                     } else {            //If incoming offset == queue.size(), reply with EOS package instead of C2BData
                         //and close connection
@@ -285,10 +295,7 @@ class BrokerWorker implements Runnable {
                         System.out.println("End of partition...");
                         //return true;
                     }
-                    if (count >= 50) {
-                        System.out.println("Broker sent 50 packages");
-                        count = 0;
-                    }
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
