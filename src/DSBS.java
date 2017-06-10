@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -168,9 +169,6 @@ class DSBSServerWorker implements Runnable {
                                 String ipAddr = DSBS.brokerList.get(i)[0];
                                 int portNum = Integer.parseInt(DSBS.brokerList.get(i)[1]);
 
-                                // skip the current broker
-                                if (ipAddr.equals(DSBS.ipAddr) && portNum == DSBS.portNum) continue;
-
                                 // connect remote broker
                                 try (Socket socket = new Socket(ipAddr, portNum)) {
                                     try (ObjectOutputStream objOut = new ObjectOutputStream(socket.getOutputStream());
@@ -196,6 +194,10 @@ class DSBSServerWorker implements Runnable {
                                     }
                                 }
                             }
+
+                            // send ACK
+                            revPkg._ack = true;
+                            out.writeObject(revPkg);
                             break;
                         }
                         case B2BINFO: {
@@ -210,6 +212,30 @@ class DSBSServerWorker implements Runnable {
                             // shouldn't init dataMap
                             // each broker is only responsible for its own partition
                             // let consumer or producer to init dataMap
+
+                            // init dataMap
+                            // otherwise, consumer with multi-thread will cause error
+                            for (String topic : DSBS.infoMap.keySet()) {
+                                List<PartitionEntry> listOfPartitionEntry = DSBS.infoMap.get(topic);
+
+                                // init dataMap
+                                ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
+
+                                for (PartitionEntry partitionEntry : listOfPartitionEntry) {
+                                    int brokerId = partitionEntry._brokerID;
+
+                                    // check who is responsible for partition
+                                    if (DSBS.ipAddr.equals(DSBS.brokerList.get(brokerId)[0]) &&
+                                            DSBS.portNum == Integer.parseInt(DSBS.brokerList.get(brokerId)[1])) {
+
+                                        int partitionNum = partitionEntry._partitionNum;
+                                        entryMap.put(partitionNum, new ArrayList<>());
+                                        System.out.println("Server: initialized partition " + partitionNum + " with topic " + topic);
+                                    }
+                                }
+
+                                DSBS.dataMap.put(topic, entryMap);
+                            }
 
                             // send ACK
                             out.writeObject(pkg);
@@ -358,14 +384,28 @@ class DSBSServerWorker implements Runnable {
 
                             DSBSC2BDataHandler(pkg, out);
 
+//                            // TEST ONLY
+//                            long inTime = 0;
+//                            long outTime = 0;
+
                             Package revPkg1;
                             while ((revPkg1 = (Package) in.readObject()) != null) {
+
+//                                // TEST ONLY
+//                                inTime = System.currentTimeMillis();
+//                                System.out.println("TEST: network travel time " + (inTime - outTime) + " ms");
+
+                                System.out.println("Server: received package with command \"C2BDATA\"");
+
                                 if (revPkg1._type == TYPE.EOS) {
                                     System.out.println("Server: reached the end of data stream");
                                     break;
                                 }
 
                                 DSBSC2BDataHandler(pkg, out);
+
+//                                outTime = System.currentTimeMillis();
+//                                System.out.println("TEST: data processing time " + (outTime - inTime) + " ms");
                             }
 
                             break;
@@ -415,6 +455,9 @@ class DSBSServerWorker implements Runnable {
         int batchSize = pkg._batchSize;
         int offset = pkg._offset; // offset = -1
 
+        // TEST ONLY
+//        System.out.println("Received offset: " + offset);
+
         // check the batch size
         if (batchSize <= 0) {
             System.out.println("Error: invalid batch size");
@@ -435,70 +478,89 @@ class DSBSServerWorker implements Runnable {
                     partitionEntry._offsetMap.put(groupId, 0);
                 }
                 offset = partitionEntry._offsetMap.get(groupId);
+
+                // TEST ONLY
+//                System.out.println("Updated offset: " + offset);
+
+                break;
             }
         }
 
+//        // check if topic exists
+//        int newOffset;
+//        if (!DSBS.dataMap.containsKey(topic)) {
+//            // init dataMap
+//            ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
+//            // create synchronized list
+//            // avoid race condition
+////            entryMap.put(partitionNum, Collections.synchronizedList(new ArrayList<>()));
+////            entryMap.put(partitionNum, new CopyOnWriteArrayList<>());
+//            entryMap.put(partitionNum, new ArrayList<>());
+//
+//            DSBS.dataMap.put(topic, entryMap);
+//
+//            // send NACK
+//            newOffset = offset;
+//            pkg._offset = newOffset;
+//            pkg._ack = false;
+//
+//            try {
+//                out.writeObject(pkg);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            System.out.println("Server: create new queue for partition");
+//            System.out.println("Server: sent NACK due to empty queue");
+//
+//            // no need to commit new offset
+//
+//        }
+
         // check if topic exists
-        int newOffset = -1;
-        if (!DSBS.dataMap.containsKey(topic)) {
-            // init dataMap
-            ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
-            entryMap.put(partitionNum, new ArrayList<>());
-
-            DSBS.dataMap.put(topic, entryMap);
-
-            // send NACK
-            try {
-                out.writeObject(pkg);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            System.out.println("Server: empty records");
-
-        } else {
+        int newOffset;
+        if (DSBS.dataMap.containsKey(topic)){
             // check if partition exists
             if (!DSBS.dataMap.get(topic).containsKey(partitionNum)) {
                 System.out.println("System error: no valid partition number");
+                return;
             }
 
             // partition for given topic
             List<Record> listOfRecord = DSBS.dataMap.get(topic).get(partitionNum);
             int size = listOfRecord.size();
 
-            // check if the offset is valid
-            if (offset < 0 || offset > size) {
-                System.out.println("Error: invalid offset");
-                return;
-            }
-
-            // check if data stream ends
-//            if (offset == size) {
-//                try {
-//                    out.writeObject(pkg);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                // send EOS
-//                EOS sendPkg_EOS = new EOS(TYPE.EOS);
-//                try {
-//                    out.writeObject(sendPkg_EOS);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//                System.out.println("Server: end of data stream to consumer");
-//                return;
-//            }
-
             // assign the list of record with required batch size
-            if (offset + batchSize <= size) {
-                pkg._data = new ArrayList<>(listOfRecord.subList(offset, offset + batchSize));
+            if (offset < size && offset + batchSize <= size) {
+                List<Record> copy = new ArrayList<>(listOfRecord);
+                pkg._data = new ArrayList<>(copy.subList(offset, offset + batchSize));
                 newOffset = offset + batchSize;
+                copy = null;
 
-
-            } else if (offset + batchSize > size) {
-                pkg._data = new ArrayList<>(listOfRecord.subList(offset, size));
+            } else if (offset < size && offset + batchSize > size) {
+                List<Record> copy = new ArrayList<>(listOfRecord);
+                pkg._data = new ArrayList<>(copy.subList(offset, size));
                 newOffset = size;
+                copy = null;
+
+            } else {
+                // send NACK back
+                newOffset = size;
+                pkg._offset = newOffset;
+                pkg._ack = false;
+
+                try {
+                    out.writeObject(pkg);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("Server: sent NACK due to empty queue");
+
+                // commit the offset
+                if (offsetMap != null) {
+                    offsetMap.put(groupId, newOffset);
+                }
+
+                return;
             }
 
             // send data back
@@ -510,7 +572,10 @@ class DSBSServerWorker implements Runnable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println("Server: sent a list of record back to consumer");
+            System.out.println("Server: sent a list of record back to consumer with topic \"" + topic + "\"");
+        } else {
+            System.out.println("System error: no valid topic");
+            return;
         }
 
         // commit the offset
@@ -668,20 +733,25 @@ class DSBSP2BDataWorker implements Runnable {
         // check if the topic exists
         if (DSBS.dataMap.containsKey(topic)) {
             ConcurrentHashMap<Integer, List<Record>> entryMap = DSBS.dataMap.get(topic);
+
             if (entryMap.containsKey(partitionNum)) {
                 List<Record> tmpData = entryMap.get(partitionNum);
                 tmpData.addAll(data);
                 entryMap.put(partitionNum, tmpData);
             }
             else {
-                entryMap.put(partitionNum, data);
+//                entryMap.put(partitionNum, data);
+                System.out.println("System error: no valid partition");
+                return;
             }
             DSBS.dataMap.put(topic, entryMap);
         }
         else {
-            ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
-            entryMap.put(partitionNum, data);
-            DSBS.dataMap.put(topic, entryMap);
+//            ConcurrentHashMap<Integer, List<Record>> entryMap = new ConcurrentHashMap<>();
+//            entryMap.put(partitionNum, data);
+//            DSBS.dataMap.put(topic, entryMap);
+            System.out.println("System error: no valid topic");
+            return;
         }
     }
 }
@@ -759,7 +829,7 @@ abstract class DSBSUtility {
                             pattern = Pattern.compile(",\\s*(\\d{4,5}$)");
                             matcher = pattern.matcher(content);
 
-                            if (matcher.find() && (Integer.parseInt(matcher.group(1)) >= 1024 && Integer.parseInt(matcher.group(1)) <= 49151)) {
+                            if (matcher.find() && (Integer.parseInt(matcher.group(1)) >= 1024 && Integer.parseInt(matcher.group(1)) <= 65535)) {
                                 remotePortNum = matcher.group(1);
                             } else {
                                 System.out.println("Error: invalid host port");
