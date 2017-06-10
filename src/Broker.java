@@ -70,13 +70,15 @@ class BrokerWorker implements Runnable {
     public void run() {
 
 
-        try {
-            ObjectInputStream in;
-            ObjectOutputStream out;
+        try (ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
+             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+             ){
+//            ObjectInputStream in;
+//            ObjectOutputStream out;
             ObjectOutputStream fwdOut;
             ObjectInputStream fwdIn;
-            in = new ObjectInputStream(sock.getInputStream());
-            out = new ObjectOutputStream(sock.getOutputStream());
+//            in = new ObjectInputStream(sock.getInputStream());
+//            out = new ObjectOutputStream(sock.getOutputStream());
 
 
             Package pack1 = (Package) in.readObject();
@@ -201,7 +203,7 @@ class BrokerWorker implements Runnable {
                 long outTime = 0;
                 while (true) {
                     pack3 = (Package) in.readObject();
-                    inTime = System.currentTimeMillis();
+                    //inTime = System.currentTimeMillis();
                     //System.out.println("Network travel time: " + (inTime - outTime) + " ms");
                     if (pack3._type == TYPE.C2BDATA) {
                         C2BData pack5 = (C2BData) pack3;
@@ -211,8 +213,8 @@ class BrokerWorker implements Runnable {
                         processC2BData(pack5, out);
 
 
-                        outTime = System.currentTimeMillis();
-                        //System.out.println("Time to process package: " + (outTime-inTime) + " ms");
+                        //outTime = System.currentTimeMillis();
+                        //System.out.println("Time to process package: " + (outTime-inTime) + " ms, offset: "+ pack5._offset);
 
 //
                     }
@@ -283,8 +285,8 @@ class BrokerWorker implements Runnable {
                         //out.writeObject(pack);
                         copy = null;
 
-//                        System.out.println("Broker send a batch of List<Record> with size: "+ pack._data.size()
-//                                +" from partition " + partitionNum);
+                        System.out.println("Broker send a batch of List<Record> with size: "+ pack._data.size()
+                                +" from partition " + partitionNum+", offset: "+pack._offset);
 
                         //return true;
 
@@ -301,7 +303,7 @@ class BrokerWorker implements Runnable {
                         pack._ack = true;
                         //out.writeObject(pack);
                         System.out.println("Broker send a batch of List<Record> with size: "+ pack._data.size()
-                                +" from partition " + partitionNum);
+                                +" from partition " + partitionNum+", offset: "+pack._offset);
                         //return true;
                         copy = null;
 

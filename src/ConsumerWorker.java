@@ -85,14 +85,15 @@ public class ConsumerWorker implements Runnable {
 			long outTime=0;
             while (true) {
 				p = (Package)inStream.readObject();
-				inTime = System.currentTimeMillis();
-				//System.out.println("Network travel time: " + (inTime - outTime) + " ms");
+//				inTime = System.currentTimeMillis();
+//                System.out.println("In time: " + inTime +
+//                        " ms, partiton: "+((C2BData) p)._partitionNum+", offset: "+((C2BData) p)._offset);
                 datapackage = (C2BData)p;
 //                printDataBatch(datapackage);
 				_recordcount += datapackage._data.size();
 				if (_recordcount >= RECORD_CNT_LMT) break;
 				outStream.writeObject(datapackage); // hotfix
-				outTime = System.currentTimeMillis();
+//				outTime = System.currentTimeMillis();
 				//System.out.println("Package processing time: " + (outTime - inTime) + " ms");
             }
 			outStream.writeObject(new EOS(TYPE.EOS));
