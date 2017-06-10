@@ -13,13 +13,13 @@ public class Producer {
     private static String _topic = "abc";
     private static int _bufferSize = 31000;
     private static int _batchSize = 20;
-    private static int _recordSize = 8;
+    private static int _recordSize;
     private static List<String[]> _destList;        // {partitionIP, partitionPort, partitionNum}
     private static List<ProducerWorker> _workerList = new ArrayList<>();
     private static volatile boolean _finish;
 
     public static void main(String[] args) {
-        //configure();
+        configure();
         connectBroker();
         produce();
     }
@@ -29,12 +29,12 @@ public class Producer {
     private static void configure() {
         System.out.println("Producer boot");
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Please input topic name:");
-        _topic = scanner.next();
-        System.out.println("Please input batch size:");
-        _batchSize = scanner.nextInt();
-        System.out.println("Please input buffer size:");
-        _bufferSize = scanner.nextInt();
+     //   System.out.println("Please input topic name:");
+     //   _topic = scanner.next();
+     //   System.out.println("Please input batch size:");
+     //   _batchSize = scanner.nextInt();
+     //   System.out.println("Please input buffer size:");
+     //   _bufferSize = scanner.nextInt();
         System.out.println("Please input record size(byte):");
         _recordSize = scanner.nextInt();
     }
