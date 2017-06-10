@@ -463,7 +463,7 @@ class DSBSServerWorker implements Runnable {
         int offset = pkg._offset; // offset = -1
 
         // TEST ONLY
-        System.out.println("Received offset: " + offset);
+//        System.out.println("Received offset: " + offset);
 
         // check the batch size
         if (batchSize <= 0) {
@@ -487,7 +487,7 @@ class DSBSServerWorker implements Runnable {
                 offset = partitionEntry._offsetMap.get(groupId);
 
                 // TEST ONLY
-                System.out.println("Updated offset: " + offset);
+                System.out.println("offset: " + offset);
 
                 break;
             }
