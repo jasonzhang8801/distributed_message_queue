@@ -236,7 +236,7 @@ class BrokerWorker implements Runnable {
                 for (int key : keySet) {
                     entryMap.get(key).clear();
                 }
-                System.out.println("All partitions on topic "+topic+" cleared");
+                //System.out.println("All partitions on topic "+topic+" cleared");
 
 
             }
@@ -285,7 +285,7 @@ class BrokerWorker implements Runnable {
                         //out.writeObject(pack);
                         copy = null;
 
-                        System.out.println("Broker send a batch of List<Record> with size: "+ pack._data.size()
+                        System.out.println("Broker sends a batch Records"
                                 +" from partition " + partitionNum+", offset: "+pack._offset);
 
                         //return true;
@@ -302,7 +302,7 @@ class BrokerWorker implements Runnable {
                         pack._offset = size;
                         pack._ack = true;
                         //out.writeObject(pack);
-                        System.out.println("Broker send a batch of List<Record> with size: "+ pack._data.size()
+                        System.out.println("Broker sends a batch of Records"
                                 +" from partition " + partitionNum+", offset: "+pack._offset);
                         //return true;
                         copy = null;
