@@ -75,26 +75,26 @@ public class ConsumerWorker implements Runnable {
 				if (datapackage._ack == true) {
 					Consumer.startTimes[_ID] = System.currentTimeMillis();
 					outStream.writeObject(datapackage);
-					System.out.println("start time" + _ID + " " + Consumer.startTimes[_ID]);
+//					System.out.println("start time" + _ID + " " + Consumer.startTimes[_ID]);
 					break;
 				}
 
 				outStream.writeObject(datapackage);
 			}
-			long inTime=0;
-			long outTime=0;
+//			long inTime=0;
+//			long outTime=0;
             while (true) {
 				p = (Package)inStream.readObject();
-				inTime = System.currentTimeMillis();
-				System.out.println("Network travel time: " + (inTime - outTime) + " ms");
+//				inTime = System.currentTimeMillis();
+//				System.out.println("Network travel time: " + (inTime - outTime) + " ms");
                 datapackage = (C2BData)p;
 //                printDataBatch(datapackage);
 				_recordcount += datapackage._data.size();
 
 				if (_recordcount >= RECORD_CNT_LMT) break;
 				outStream.writeObject(datapackage); // hotfix
-				outTime = System.currentTimeMillis();
-				System.out.println("Package processing time: " + (outTime - inTime) + " ms");
+//				outTime = System.currentTimeMillis();
+//				System.out.println("Package processing time: " + (outTime - inTime) + " ms");
             }
 			outStream.writeObject(new EOS(TYPE.EOS));
             System.out.println(_threadName + " Data consumption complete");
@@ -105,7 +105,7 @@ public class ConsumerWorker implements Runnable {
 
             // yue
 			Consumer.endTimes[_ID] = System.currentTimeMillis();
-			System.out.println("end time" + _ID + " " + Consumer.endTimes[_ID]);
+//			System.out.println("end time " + _ID + " " + Consumer.endTimes[_ID]);
     		} catch (Exception e) {
     			e.printStackTrace();
 				//System.out.println();

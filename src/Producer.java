@@ -27,7 +27,7 @@ public class Producer {
 
     // configure topic, bufferSize, batchSize and recordSize
     private static void configure() {
-        System.out.println("Producer boot");
+        System.out.println("Producer boots up");
         Scanner scanner = new Scanner(System.in);
      //   System.out.println("Please input topic name:");
      //   _topic = scanner.next();
@@ -76,7 +76,7 @@ public class Producer {
         for (String[] a_destList : _destList) {
             _workerList.add(new ProducerWorker(a_destList[0], Integer.parseInt(a_destList[1]), Integer.parseInt(a_destList[2])));
         }
-        System.out.println("P2BData...");
+
         List<Thread> threadList = new ArrayList<>();
         for (int i = 0; i < partition; i++) {
             threadList.add(new Thread(_workerList.get(i)));
@@ -101,15 +101,14 @@ public class Producer {
                 e.printStackTrace();
             }
         }
-        System.out.println("P2BData finish");
 
         // calculate throughput
         long end = System.currentTimeMillis();
         long throughput = (_bufferSize * 1000) / (end - start);
-        System.out.println("start = "+ start);
-        System.out.println("end = "+ end);
+        System.out.println("start timestamp = "+ start);
+        System.out.println("end timestamp = "+ end);
         System.out.println("\nProducer finished, the result is:");
-        System.out.println("Buffer Size = " + _bufferSize + " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + " record(s)/s");
+        System.out.println("Buffer Size = " + _bufferSize + " Batch Size = " + _batchSize + " Record Size = " + _recordSize + " Throughput = " + throughput + " record/s");
     }
 
 
@@ -131,7 +130,7 @@ public class Producer {
 
         @Override
         public void run() {
-            System.out.println("ProducerWorker" + _partitionNum + "...");
+            System.out.println("Producer worker " + _partitionNum + " is sending records ...");
             int count = 0;
             try (ObjectOutputStream out = new ObjectOutputStream(_socket.getOutputStream());
                  ObjectInputStream in = new ObjectInputStream(_socket.getInputStream())) {
@@ -146,7 +145,7 @@ public class Producer {
                     out.writeObject(new P2BData(TYPE.P2BDATA, _topic, _partitionNum, data));
                 }
 
-                System.out.println("send #package = " + count);
+//                System.out.println("send #package = " + count);
                 // send P2BEOS
                 out.writeObject(new EOS(TYPE.EOS));
 
@@ -158,7 +157,7 @@ public class Producer {
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            System.out.println("ProducerWorker" + _partitionNum + "finish");
+            System.out.println("Producer worker " + _partitionNum + " finished ");
         }
     }
 }
