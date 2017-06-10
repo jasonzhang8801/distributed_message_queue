@@ -402,7 +402,7 @@ class DSBSServerWorker implements Runnable {
                                     break;
                                 }
 
-                                DSBSC2BDataHandler(pkg, out);
+                                DSBSC2BDataHandler((C2BData)revPkg1, out);
 
 //                                outTime = System.currentTimeMillis();
 //                                System.out.println("TEST: data processing time " + (outTime - inTime) + " ms");
@@ -487,7 +487,7 @@ class DSBSServerWorker implements Runnable {
                 offset = partitionEntry._offsetMap.get(groupId);
 
                 // TEST ONLY
-//                System.out.println("Updated offset: " + offset);
+                System.out.println("offset: " + offset);
 
                 break;
             }
