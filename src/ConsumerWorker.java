@@ -88,6 +88,7 @@ public class ConsumerWorker implements Runnable {
                 datapackage = (C2BData)p;
 //                printDataBatch(datapackage);
 				_recordcount += datapackage._data.size();
+
 				if (_recordcount >= RECORD_CNT_LMT) break;
 				outStream.writeObject(datapackage); // hotfix
 
