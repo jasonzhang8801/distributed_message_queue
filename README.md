@@ -1,4 +1,4 @@
-# Distributed Message Queue (Developing...)
+# Distributed Message Queue
 
 ## System Overview
 <img src='https://raw.githubusercontent.com/jsongcat/distributed_message_queue/master/viz/Kafka with Centralized Coordinator.png' title='Kafka with Centralized Coordinator Overview' width='' alt='Kafka with Centralized Coordinator Overview' />
